@@ -1,0 +1,672 @@
+You are creating MetaPulse AI Bot — $PULSEAI. Build a monorepo with:
+
+apps/bot: Node/TypeScript service that:
+
+connects to PumpPortal via a single WebSocket,
+
+aggregates rolling metrics per token,
+
+tags tokens into metas (AI optional; if no key, falls back to heuristic),
+
+every hour posts a Top Metas & Tokens digest to a Telegram group,
+
+exposes simple paywall hooks (currently disabled).
+
+apps/web: Next.js site that presents the project (landing page) and reads a simple JSON dump from the bot (written to public/feed.json) to show current metas; this is enough to “link the bot to a website”.
+
+packages/core: reusable logic for scoring, meta tagging, and rollups.
+
+packages/pumpportal: PumpPortal WebSocket client and minimal trade helpers (no sniping yet).
+
+Keep dependencies minimal and safe. No emojis anywhere.
+
+File Tree
+metapulse/
+├─ apps/
+│  ├─ bot/
+│  │  ├─ src/
+│  │  │  ├─ index.ts
+│  │  │  ├─ ws.ts
+│  │  │  ├─ rollups.ts
+│  │  │  ├─ metas.ts
+│  │  │  ├─ telegram.ts
+│  │  │  ├─ scheduler.ts
+│  │  │  ├─ config.ts
+│  │  │  └─ types.ts
+│  │  ├─ package.json
+│  │  └─ tsconfig.json
+│  └─ web/
+│     ├─ app/
+│     │  ├─ layout.tsx
+│     │  ├─ page.tsx
+│     │  └─ metas/page.tsx
+│     ├─ public/feed.json
+│     ├─ next.config.js
+│     ├─ package.json
+│     └─ tsconfig.json
+├─ packages/
+│  ├─ core/
+│  │  ├─ src/
+│  │  │  ├─ scoring.ts
+│  │  │  ├─ metaLabel.ts
+│  │  │  └─ index.ts
+│  │  ├─ package.json
+│  │  └─ tsconfig.json
+│  └─ pumpportal/
+│     ├─ src/
+│     │  ├─ client.ts
+│     │  └─ index.ts
+│     ├─ package.json
+│     └─ tsconfig.json
+├─ .env.example
+├─ package.json
+├─ pnpm-workspace.yaml
+└─ README.md
+
+Root package.json
+{
+  "name": "metapulse",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "packageManager": "pnpm@9.10.0",
+  "scripts": {
+    "dev:bot": "pnpm --filter @metapulse/bot dev",
+    "dev:web": "pnpm --filter @metapulse/web dev",
+    "build": "pnpm -r build",
+    "start:bot": "pnpm --filter @metapulse/bot start",
+    "start:web": "pnpm --filter @metapulse/web start"
+  }
+}
+
+.env.example (copy to .env at repo root and load in apps)
+# PumpPortal
+PUMPPORTAL_API_KEY=
+
+# Telegram
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=  # numeric id of your group/channel
+
+# Bot behavior
+DIGEST_CRON=0 * * * *           # every hour at minute 0
+ROLLUP_WINDOW_SEC=3600          # 1 hour
+TOP_TOKENS_LIMIT=10
+TOP_METAS_LIMIT=5
+MIN_UNIQUE_BUYERS=4
+MAX_PRICE_IMPACT_01=25          # %
+MIN_BUYER_SELLER_RATIO=1.1
+
+# AI (optional - if missing, use heuristic)
+LLM_API_KEY=
+LLM_MODEL=gpt-4o-mini
+
+packages/pumpportal/src/client.ts
+import WebSocket from "ws";
+
+export type SubMsg =
+  | { method: "subscribeNewToken" }
+  | { method: "subscribeMigration" }
+  | { method: "subscribeTokenTrade"; keys: string[] }
+  | { method: "subscribeAccountTrade"; keys: string[] };
+
+export class PumpPortalWS {
+  private ws?: WebSocket;
+  private url: string;
+  private queue: SubMsg[] = [];
+  private onMessage: (data: any) => void;
+
+  constructor(apiKey: string | undefined, onMessage: (d: any) => void) {
+    this.url = apiKey
+      ? `wss://pumpportal.fun/api/data?api-key=${apiKey}`
+      : `wss://pumpportal.fun/api/data`;
+    this.onMessage = onMessage;
+  }
+
+  connect() {
+    this.ws = new WebSocket(this.url);
+    this.ws.on("open", () => {
+      for (const m of this.queue) this.ws!.send(JSON.stringify(m));
+      this.queue = [];
+    });
+    this.ws.on("message", (b) => {
+      try { this.onMessage(JSON.parse(b.toString())); } catch {}
+    });
+    this.ws.on("close", () => setTimeout(() => this.connect(), 800));
+    this.ws.on("error", () => this.ws?.close());
+  }
+
+  subscribe(msg: SubMsg) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) this.queue.push(msg);
+    else this.ws.send(JSON.stringify(msg));
+  }
+}
+
+packages/pumpportal/src/index.ts
+export * from "./client";
+
+packages/pumpportal/package.json
+{
+  "name": "@metapulse/pumpportal",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
+
+packages/pumpportal/tsconfig.json
+{
+  "compilerOptions": { "target": "ES2022", "module": "ES2022", "moduleResolution": "Bundler", "strict": true, "skipLibCheck": true }
+}
+
+packages/core/src/metaLabel.ts
+type MetaOutput = { label: string; metaScore: number; reason?: string };
+
+export function heuristicMeta(name?: string, symbol?: string, desc?: string): MetaOutput {
+  const s = `${name ?? ""} ${symbol ?? ""} ${desc ?? ""}`.toLowerCase();
+  const tests: [string, RegExp][] = [
+    ["ai-agents", /\bai|agent|gpt|llm|nexus|neural|morph/i],
+    ["frogs", /\bpepe|frog|kermit/i],
+    ["celeb", /\belon|trump|taylor|mrbeast|celebr/i],
+    ["halloween", /\bspook|ghost|pumpkin|howl|hallow/i],
+    ["gaming", /\bgame|arena|quest|pixel|8bit|esport/i],
+    ["doge-meme", /\bdoge|shiba|bonk|inu/i]
+  ];
+  for (const [label, rx] of tests) if (rx.test(s)) return { label, metaScore: 65, reason: "heuristic match" };
+  return { label: "unknown", metaScore: 50, reason: "no strong match" };
+}
+
+export async function llmMeta(
+  input: { name?: string; symbol?: string; desc?: string; stats: any },
+  key?: string,
+  model?: string
+): Promise<MetaOutput> {
+  if (!key || !model) return heuristicMeta(input.name, input.symbol, input.desc);
+  // simple JSON protocol; keep it robust
+  const prompt = `You are MetaPulse. Classify token into one concise meta label (e.g., ai-agents, frogs, celeb, halloween, gaming, doge-meme, politics, nsfw, unknown). Also return metaScore 0..100 based on trend fit. Respond JSON only with keys label, metaScore, reason. Input: ${JSON.stringify(input)}`;
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+    body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], temperature: 0.2 })
+  });
+  const json = await res.json();
+  const text = json.choices?.[0]?.message?.content ?? "";
+  try { const obj = JSON.parse(text); return obj; } catch { return heuristicMeta(input.name, input.symbol, input.desc); }
+}
+
+packages/core/src/scoring.ts
+export type Snapshot = {
+  mint: string;
+  name?: string;
+  symbol?: string;
+  desc?: string;
+  buyers1m: number;
+  sellers1m: number;
+  uniqBuyers1m: number;
+  priceImpact01?: number;
+};
+
+export function techScore(s: Snapshot, cfg: {
+  minUniqueBuyers: number;
+  maxImpactPct: number;
+  minBuyerSeller: number;
+}) {
+  const reasons: string[] = [];
+  let score = 0;
+
+  if (s.uniqBuyers1m >= cfg.minUniqueBuyers) { score += 25; reasons.push("unique buyers ok"); }
+  if (s.buyers1m > 0) {
+    const ratio = s.buyers1m / Math.max(1, s.sellers1m);
+    if (ratio >= cfg.minBuyerSeller) { score += 25; reasons.push("buy pressure ok"); }
+  }
+  if (typeof s.priceImpact01 === "number") {
+    if (s.priceImpact01 <= cfg.maxImpactPct) { score += 25; reasons.push("impact acceptable"); }
+  } else {
+    score += 10; reasons.push("impact unknown");
+  }
+  // lightweight hygiene bonus
+  if (s.name && s.symbol && s.symbol.length <= 6) { score += 10; reasons.push("naming clean"); }
+
+  return { score: Math.min(100, score), reasons };
+}
+
+export function totalScore(tech: number, meta: number) {
+  return Math.round(0.6 * tech + 0.4 * meta);
+}
+
+packages/core/src/index.ts
+export * from "./scoring";
+export * from "./metaLabel";
+
+packages/core/package.json
+{
+  "name": "@metapulse/core",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {}
+}
+
+packages/core/tsconfig.json
+{
+  "compilerOptions": { "target": "ES2022", "module": "ES2022", "moduleResolution": "Bundler", "strict": true, "skipLibCheck": true }
+}
+
+apps/bot/src/types.ts
+export type TokenTradeMsg = {
+  type: "tokenTrade";
+  mint: string;
+  buyer?: string;
+  seller?: string;
+  price?: number;
+  signature?: string;
+  slot?: number;
+};
+
+export type NewTokenMsg = {
+  type: "newToken";
+  mint: string;
+  name?: string;
+  symbol?: string;
+  description?: string;
+};
+
+apps/bot/src/config.ts
+export const cfg = {
+  apiKey: process.env.PUMPPORTAL_API_KEY,
+  telegramToken: process.env.TELEGRAM_BOT_TOKEN!,
+  telegramChatId: process.env.TELEGRAM_CHAT_ID!,
+  cron: process.env.DIGEST_CRON || "0 * * * *",
+  rollupWindowSec: Number(process.env.ROLLUP_WINDOW_SEC || 3600),
+  topTokensLimit: Number(process.env.TOP_TOKENS_LIMIT || 10),
+  topMetasLimit: Number(process.env.TOP_METAS_LIMIT || 5),
+  minUniqueBuyers: Number(process.env.MIN_UNIQUE_BUYERS || 4),
+  maxImpactPct: Number(process.env.MAX_PRICE_IMPACT_01 || 25),
+  minBuyerSeller: Number(process.env.MIN_BUYER_SELLER_RATIO || 1.1),
+  llmKey: process.env.LLM_API_KEY,
+  llmModel: process.env.LLM_MODEL
+};
+
+apps/bot/src/rollups.ts
+type Roll = { t: number; buyer?: string; seller?: string; price?: number };
+type Store = Map<string, Roll[]>;
+
+export class Rollups {
+  private store: Store = new Map();
+
+  add(mint: string, data: Roll) {
+    const arr = this.store.get(mint) ?? [];
+    arr.push(data);
+    this.store.set(mint, arr);
+  }
+
+  summary(mint: string, windowSec: number) {
+    const now = Date.now() / 1000;
+    const arr = (this.store.get(mint) ?? []).filter(r => (now - r.t) <= windowSec);
+    const buyers = arr.filter(a => a.buyer).length;
+    const sellers = arr.filter(a => a.seller).length;
+    const uniqBuyers = new Set(arr.filter(a => a.buyer).map(a => a.buyer)).size;
+    // naive impact estimator: price stdev proxy
+    const prices = arr.map(a => a.price).filter((x): x is number => typeof x === "number");
+    let impact: number | undefined = undefined;
+    if (prices.length >= 3) {
+      const min = Math.min(...prices), max = Math.max(...prices);
+      if (min > 0) impact = ((max - min) / min) * 100;
+    }
+    return { buyers, sellers, uniqBuyers, impact01: impact, size: arr.length };
+  }
+
+  allMints() { return Array.from(this.store.keys()); }
+}
+
+apps/bot/src/metas.ts
+import { llmMeta, heuristicMeta } from "@metapulse/core";
+
+export async function labelMeta(input: { name?: string; symbol?: string; desc?: string; stats: any }, llmKey?: string, llmModel?: string) {
+  try { return await llmMeta(input, llmKey, llmModel); }
+  catch { return heuristicMeta(input.name, input.symbol, input.desc); }
+}
+
+apps/bot/src/telegram.ts
+import TelegramBot from "node-telegram-bot-api";
+
+export function makeBot(token: string) {
+  return new TelegramBot(token, { polling: false });
+}
+
+export async function sendDigest(bot: TelegramBot, chatId: string | number, payload: {
+  metas: { label: string; count: number; avgScore: number }[];
+  tokens: { mint: string; name?: string; symbol?: string; totalScore: number }[];
+}) {
+  const metaLines = payload.metas.map(m => `- ${m.label} — ${m.count} tokens, score ${m.avgScore}`);
+  const tokenLines = payload.tokens.map(t => `- ${t.name ?? ""} ${t.symbol ? `(${t.symbol})` : ""} ${t.mint} — score ${t.totalScore}`);
+
+  const text = [
+    "MetaPulse AI Bot — Hourly Meta Digest",
+    "",
+    "Top Metas:",
+    ...metaLines,
+    "",
+    "Top Tokens:",
+    ...tokenLines,
+    "",
+    "Note: Sniper and Launcher modules are scheduled for Phase 2. This bot is currently free to use."
+  ].join("\n");
+
+  await bot.sendMessage(chatId, text, { disable_web_page_preview: true });
+}
+
+apps/bot/src/scheduler.ts
+import cron from "node-cron";
+
+export function schedule(cronExpr: string, fn: () => void) {
+  cron.schedule(cronExpr, fn, { timezone: "Etc/UTC" });
+}
+
+apps/bot/src/ws.ts
+import { PumpPortalWS } from "@metapulse/pumpportal";
+import type { NewTokenMsg, TokenTradeMsg } from "./types";
+
+export function connectPumpPortal(apiKey: string | undefined, onMsg: (m: any) => void) {
+  const ws = new PumpPortalWS(apiKey, onMsg);
+  ws.connect();
+  ws.subscribe({ method: "subscribeNewToken" });
+  return ws;
+}
+
+apps/bot/src/index.ts
+import "dotenv/config";
+import { connectPumpPortal } from "./ws";
+import { cfg } from "./config";
+import { Rollups } from "./rollups";
+import { techScore, totalScore } from "@metapulse/core";
+import { labelMeta } from "./metas";
+import { makeBot, sendDigest } from "./telegram";
+import { schedule } from "./scheduler";
+import fs from "node:fs";
+import path from "node:path";
+
+const rollups = new Rollups();
+const TOK_INFO = new Map<string, { name?: string; symbol?: string; desc?: string }>();
+const SCORES = new Map<string, { tech: number; meta: number; total: number; label: string }>();
+
+connectPumpPortal(cfg.apiKey, async (msg: any) => {
+  if (msg.type === "newToken") {
+    const m = msg as any;
+    TOK_INFO.set(m.mint, { name: m.name, symbol: m.symbol, desc: m.description });
+    // subscribe to trades for this token
+    // use the same connection: PumpPortalWS requires single WS, so add to subscription queue
+    // this will be handled in the ws class by calling subscribe again externally if needed.
+  }
+  if (msg.type === "tokenTrade") {
+    const t = msg as any;
+    const now = Date.now() / 1000;
+    rollups.add(t.mint, { t: now, buyer: t.buyer, seller: t.seller, price: t.price });
+
+    // compute snapshot on the fly
+    const r = rollups.summary(t.mint, cfg.rollupWindowSec);
+    const info = TOK_INFO.get(t.mint) || {};
+    const tech = techScore({
+      mint: t.mint, name: info.name, symbol: info.symbol, desc: info.desc,
+      buyers1m: r.buyers, sellers1m: r.sellers, uniqBuyers1m: r.uniqBuyers, priceImpact01: r.impact01
+    }, { minUniqueBuyers: cfg.minUniqueBuyers, maxImpactPct: cfg.maxImpactPct, minBuyerSeller: cfg.minBuyerSeller });
+
+    const meta = await labelMeta({ name: info.name, symbol: info.symbol, desc: info.desc, stats: r }, cfg.llmKey, cfg.llmModel);
+    const total = totalScore(tech.score, meta.metaScore);
+    SCORES.set(t.mint, { tech: tech.score, meta: meta.metaScore, total, label: meta.label });
+  }
+});
+
+// hourly digest
+const bot = makeBot(cfg.telegramToken);
+
+async function makeFeedAndNotify() {
+  const mints = Array.from(SCORES.keys());
+  const tokens = mints
+    .map(mint => {
+      const s = SCORES.get(mint)!; const info = TOK_INFO.get(mint) || {};
+      return { mint, name: info.name, symbol: info.symbol, totalScore: s.total, label: s.label };
+    })
+    .sort((a, b) => b.totalScore - a.totalScore)
+    .slice(0, cfg.topTokensLimit);
+
+  const byMeta = new Map<string, { count: number; sum: number }>();
+  for (const t of tokens) {
+    const cur = byMeta.get(t.label) || { count: 0, sum: 0 };
+    cur.count += 1; cur.sum += t.totalScore;
+    byMeta.set(t.label, cur);
+  }
+  const metas = Array.from(byMeta.entries())
+    .map(([label, v]) => ({ label, count: v.count, avgScore: Math.round(v.sum / v.count) }))
+    .sort((a, b) => b.avgScore - a.avgScore)
+    .slice(0, cfg.topMetasLimit);
+
+  // dump feed JSON for website
+  const feed = { generatedAt: new Date().toISOString(), metas, tokens };
+  const webPublic = path.resolve(process.cwd(), "../../apps/web/public/feed.json");
+  fs.mkdirSync(path.dirname(webPublic), { recursive: true });
+  fs.writeFileSync(webPublic, JSON.stringify(feed, null, 2));
+
+  // push to Telegram
+  await sendDigest(bot, cfg.telegramChatId, { metas, tokens });
+}
+
+// schedule hourly via cron, and also run once at boot after 30s warmup
+schedule(cfg.cron, () => { makeFeedAndNotify().catch(() => {}); });
+setTimeout(() => { makeFeedAndNotify().catch(() => {}); }, 30_000);
+
+console.log("MetaPulse AI Bot is live: hourly digests enabled.");
+
+apps/bot/package.json
+{
+  "name": "@metapulse/bot",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": { "dev": "tsx watch src/index.ts", "start": "node dist/index.js", "build": "tsc -p ." },
+  "dependencies": {
+    "@metapulse/core": "workspace:*",
+    "@metapulse/pumpportal": "workspace:*",
+    "dotenv": "^16.4.5",
+    "node-telegram-bot-api": "^0.66.0",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": { "tsx": "^4.19.0", "typescript": "^5.6.3" }
+}
+
+apps/bot/tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}
+
+apps/web/package.json
+{
+  "name": "@metapulse/web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": { "dev": "next dev -p 5174", "build": "next build", "start": "next start -p 5174" },
+  "dependencies": { "next": "14.2.4", "react": "18.3.1", "react-dom": "18.3.1" }
+}
+
+apps/web/next.config.js
+/** @type {import('next').NextConfig} */
+module.exports = { reactStrictMode: true };
+
+apps/web/tsconfig.json
+{
+  "compilerOptions": { "target": "ES2022", "module": "ES2022", "moduleResolution": "Bundler", "jsx": "react-jsx", "strict": true, "skipLibCheck": true }
+}
+
+apps/web/app/layout.tsx
+export const metadata = { title: "MetaPulse AI Bot — $PULSEAI", description: "Feel the pulse before the market does." };
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en"><body style={{ margin: 0, fontFamily: "Inter, system-ui, Arial" }}>{children}</body></html>
+  );
+}
+
+apps/web/app/page.tsx
+import Link from "next/link";
+
+export default function Home() {
+  return (
+    <main style={{ maxWidth: 880, margin: "40px auto", padding: 24 }}>
+      <h1>MetaPulse AI Bot — $PULSEAI</h1>
+      <p>Feel the pulse before the market does.</p>
+
+      <section>
+        <h2>What it is</h2>
+        <p>MetaPulse AI Bot is an AI-powered trading assistant built on Solana. It detects trending metas and token narratives faster than typical trackers. This is a smart, revenue-sharing AI ecosystem designed for traders and investors.</p>
+      </section>
+
+      <section>
+        <h2>Core Idea</h2>
+        <p>MetaPulse scans real-time blockchain and social data to find short metas early. It combines AI prediction with market signals to deliver early alerts and insights. Sniper and launcher modules will be added next.</p>
+      </section>
+
+      <section>
+        <h2>Token & Presale</h2>
+        <p>Ticker: <strong>$PULSEAI</strong></p>
+        <ul>
+          <li>30% locked</li>
+          <li>20% development</li>
+          <li>30% presale</li>
+          <li>10% liquidity</li>
+          <li>10% initial push</li>
+        </ul>
+        <p>Telegram: <a href="https://t.me/metapulseai" target="_blank">t.me/metapulseai</a></p>
+        <p>Website page is this presentation. Whitepaper is built into the site.</p>
+      </section>
+
+      <section>
+        <h2>Roadmap</h2>
+        <ol>
+          <li>Phase 1: Solana launch + AI market scanner</li>
+          <li>Phase 2: Sniper module + AI launcher</li>
+          <li>Phase 3: Expansion to BSC and Sui</li>
+          <li>Phase 4: Revenue dashboard + ecosystem build</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Live Metas</h2>
+        <p>Hourly digest powered by the bot. View the current feed:</p>
+        <p><Link href="/metas">Open the metas feed</Link></p>
+      </section>
+    </main>
+  );
+}
+
+apps/web/app/metas/page.tsx
+async function getFeed() {
+  // static file generated by the bot
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/feed.json`, { cache: "no-store" }).catch(() => null);
+  if (!res || !res.ok) return null;
+  return res.json();
+}
+
+export default async function MetasPage() {
+  const data = await getFeed();
+  return (
+    <main style={{ maxWidth: 880, margin: "40px auto", padding: 24 }}>
+      <h1>MetaPulse — Live Metas</h1>
+      {!data ? <p>No feed yet.</p> : (
+        <>
+          <p>Generated at: {data.generatedAt}</p>
+          <h2>Top Metas</h2>
+          <ul>
+            {data.metas.map((m: any, i: number) => <li key={i}>{m.label} — {m.count} tokens, score {m.avgScore}</li>)}
+          </ul>
+          <h2>Top Tokens</h2>
+          <ul>
+            {data.tokens.map((t: any) => <li key={t.mint}>{t.name ?? ""} {t.symbol ? `(${t.symbol})` : ""} — {t.mint} — score {t.totalScore}</li>)}
+          </ul>
+        </>
+      )}
+    </main>
+  );
+}
+
+apps/web/public/feed.json
+{ "generatedAt": "", "metas": [], "tokens": [] }
+
+Root pnpm-workspace.yaml
+packages:
+  - "apps/*"
+  - "packages/*"
+
+Root README.md
+# MetaPulse AI Bot — $PULSEAI
+
+Feel the pulse before the market does.
+
+This repository contains:
+- apps/bot: Meta Sniffer v1 that connects to PumpPortal, aggregates per-token metrics, labels metas (AI optional), and posts an hourly digest to Telegram. Also exports a feed JSON for the website.
+- apps/web: Next.js presentation site with a metas page reading the feed.
+
+## Getting Started
+
+1) Install pnpm and deps:
+   pnpm i
+
+2) Configure environment:
+   cp .env.example .env
+   # fill TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID at minimum
+
+3) Run the website (optional):
+   pnpm dev:web
+   # open http://localhost:5174
+
+4) Run the bot:
+   pnpm dev:bot
+
+The bot posts hourly digests to your Telegram group and updates apps/web/public/feed.json.
+
+Add the following minimal dependencies:
+
+At repo root, after generation, run:
+
+pnpm i
+
+
+The sub-packages already declare their deps. If Cursor asks, ensure these are installed:
+
+ws, dotenv, node-telegram-bot-api, node-cron, next, react, react-dom, tsx, typescript.
+
+Acceptance Criteria
+
+A single PumpPortal WebSocket connection; no multiple sockets.
+
+Bot aggregates trades per token in a rolling 1-hour window.
+
+Every hour, the bot posts a formatted digest to the provided Telegram chat:
+
+Top metas (label, count, average score)
+
+Top tokens (name, symbol, mint, total score)
+
+apps/web/public/feed.json is updated each hour; /metas page renders it.
+
+AI meta tagging is optional. If LLM_API_KEY and LLM_MODEL are not set, heuristic labeling is used.
+
+No sniping or launching code is included yet, but the structure allows adding them later.
+
+No emojis used anywhere.
+
+Notes on future paywall
+
+Insert a middleware in apps/bot/src/index.ts before sendDigest to filter recipients by a simple allowlist or tier read from a JSON or database.
+
+Add a /subscribe flow via a Telegram bot command and a simple payment link (to be implemented later).
+
+The website can surface a “Plans” section and gated API keys in a later PR.
+
+— End of Cursor prompt.

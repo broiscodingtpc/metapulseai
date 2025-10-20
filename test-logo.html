@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetaPulse Logo Test</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .logo-container {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .logo {
+            width: 100px;
+            height: 100px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111;
+        }
+        .fallback {
+            background: linear-gradient(45deg, #3b82f6, #06b6d4);
+            color: white;
+            font-weight: bold;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <h1>MetaPulse AI Bot - Logo Test</h1>
+    
+    <div class="logo-container">
+        <div class="logo">
+            <img 
+                src="https://crimson-traditional-mastodon-846.mypinata.cloud/ipfs/bafybeiebtjeaklp5bvn3bwvsc6dlellhhhpr4oxcjpsvsx5v7icnvpswqm" 
+                alt="MetaPulse Logo" 
+                style="max-width: 100%; max-height: 100%; object-fit: contain;"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            />
+            <div class="fallback" style="display: none;">MP</div>
+        </div>
+        
+        <div>
+            <h3>Logo Status</h3>
+            <p>If you see the logo above, it's working!</p>
+            <p>If you see "MP", the IPFS link failed to load.</p>
+        </div>
+    </div>
+    
+    <h3>IPFS Link:</h3>
+    <p style="word-break: break-all; color: #888;">
+        https://crimson-traditional-mastodon-846.mypinata.cloud/ipfs/bafybeiebtjeaklp5bvn3bwvsc6dlellhhhpr4oxcjpsvsx5v7icnvpswqm
+    </p>
+    
+    <h3>Fallback Strategy:</h3>
+    <ul>
+        <li>Primary: IPFS link from Pinata</li>
+        <li>Fallback: "MP" text with gradient background</li>
+        <li>Error handling: Automatic fallback on load failure</li>
+    </ul>
+</body>
+</html>

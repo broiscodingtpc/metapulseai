@@ -1,0 +1,19 @@
+{
+  "name": "metapulse",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "packageManager": "pnpm@9.10.0",
+  "scripts": {
+    "dev:bot": "pnpm --filter @metapulse/bot dev",
+    "dev:web": "pnpm --filter @metapulse/web dev",
+    "build": "pnpm -r build",
+    "start:bot": "pnpm --filter @metapulse/bot start",
+    "start:web": "pnpm --filter @metapulse/web start",
+    "start": "pnpm dev:bot & pnpm dev:web",
+    "postinstall": "pnpm install"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
