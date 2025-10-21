@@ -2,6 +2,7 @@
   "name": "@metapulse/web",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev -p 5174",
     "build": "next build",
