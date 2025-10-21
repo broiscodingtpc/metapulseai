@@ -20,7 +20,7 @@ if (!existsSync('.next')) {
 // Start Next.js
 import { spawn } from 'child_process';
 
-const nextProcess = spawn('npx', ['next', 'start', '-p', port], {
+const nextProcess = spawn('node_modules/.bin/next.cmd', ['start', '-p', port], {
   stdio: 'inherit',
   cwd: process.cwd(),
   env: { 
