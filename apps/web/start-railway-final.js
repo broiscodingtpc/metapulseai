@@ -14,7 +14,7 @@ console.log(`📁 Working directory: ${process.cwd()}`);
 import { spawn } from 'child_process';
 
 const nextProcess = spawn('node', ['node_modules/next/dist/bin/next', 'start', '-p', port], {
-  cwd: process.cwd(),
+  cwd: __dirname,
   stdio: 'inherit',
   env: { 
     ...process.env,

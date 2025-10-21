@@ -198,6 +198,6 @@ const BOT_PORT = process.env.BOT_PORT || 3001;
 server.listen(BOT_PORT, () => {
   console.log(`🤖 Bot HTTP server running on port ${BOT_PORT}`);
   console.log(`📊 API endpoints:`);
-  console.log(`   - http://localhost:${BOT_PORT}/feed.json`);
-  console.log(`   - http://localhost:${BOT_PORT}/status`);
+  console.log(`   - https://www.metapulse.tech/api/feed`);
+  console.log(`   - https://www.metapulse.tech/api/status`);
 });

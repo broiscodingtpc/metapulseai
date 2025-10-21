@@ -76,7 +76,7 @@ images: {
 open test-logo.html
 
 # Or visit in browser
-http://localhost:5174
+https://www.metapulse.tech
 ```
 
 #### Production Test

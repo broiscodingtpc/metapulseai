@@ -623,7 +623,7 @@ This repository contains:
 
 3) Run the website (optional):
    pnpm dev:web
-   # open http://localhost:5174
+   # open https://www.metapulse.tech
 
 4) Run the bot:
    pnpm dev:bot

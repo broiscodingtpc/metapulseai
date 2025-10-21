@@ -131,7 +131,7 @@ Phase 4: 🚧 Revenue Dashboard`;
 
   bot.onText(/🌐 Website/, (msg: any) => {
     const chatId = msg.chat.id;
-    bot.sendMessage(chatId, "🌐 Visit our website:\n\nhttp://localhost:5174\n\nOr click the link below to access the live metas feed:\nhttp://localhost:5174/metas", mainMenu);
+    bot.sendMessage(chatId, "🌐 Visit our website:\n\nhttps://www.metapulse.tech\n\nOr click the link below to access the live metas feed:\nhttps://www.metapulse.tech/metas", mainMenu);
   });
 
   // Handle help command
@@ -169,7 +169,7 @@ Phase 4: 🚧 Revenue Dashboard`;
   // Handle website command
   bot.onText(/\/website/, (msg: any) => {
     const chatId = msg.chat.id;
-    bot.sendMessage(chatId, "🌐 MetaPulse Website\n\nMain site: http://localhost:5174\nLive metas: http://localhost:5174/metas", mainMenu);
+    bot.sendMessage(chatId, "🌐 MetaPulse Website\n\nMain site: https://www.metapulse.tech\nLive metas: https://www.metapulse.tech/metas", mainMenu);
   });
 }
 

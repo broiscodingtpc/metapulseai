@@ -42,8 +42,8 @@ docker-compose up -d
 ```
 
 ### Access Services
-- **Website**: http://localhost:5174 (or Railway URL)
-- **Bot API**: http://localhost:3000 (or Railway URL)
+- **Website**: https://www.metapulse.tech
+- **Bot API**: https://www.metapulse.tech/api
 - **Status**: `docker-compose ps` or Railway dashboard
 - **Logs**: `docker-compose logs -f` or Railway logs
 
