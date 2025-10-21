@@ -1,4 +1,5 @@
 import './globals.css';
+import Navigation from './components/Navigation';
 
 export default function RootLayout({
   children,
@@ -14,7 +15,10 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body className="bg-black text-white antialiased">
-        {children}
+        <Navigation />
+        <main className="pt-16">
+          {children}
+        </main>
       </body>
     </html>
   );

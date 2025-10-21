@@ -41,15 +41,13 @@ export default function HomePage() {
     <div className="min-h-screen bg-black relative overflow-hidden">
       <ParticleBackground />
       
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
           className="text-center max-w-4xl mx-auto"
         >
-          <Logo size="xl" className="mx-auto mb-6" />
-          
           <AnimatedText 
             className="text-6xl md:text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 mb-6"
           >
