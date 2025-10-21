@@ -190,6 +190,19 @@ const server = http.createServer((req, res) => {
     return;
   }
   
+  if (req.url === '/api/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'healthy',
+      message: 'MetaPulse AI Bot is running',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      tokens: TOK_INFO.size,
+      scores: SCORES.size
+    }));
+    return;
+  }
+  
   res.writeHead(404, { 'Content-Type': 'text/plain' });
   res.end('Not Found');
 });
@@ -200,4 +213,5 @@ server.listen(BOT_PORT, () => {
   console.log(`📊 API endpoints:`);
   console.log(`   - https://www.metapulse.tech/api/feed`);
   console.log(`   - https://www.metapulse.tech/api/status`);
+  console.log(`   - https://www.metapulse.tech/api/health`);
 });
