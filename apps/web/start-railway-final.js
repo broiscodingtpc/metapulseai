@@ -17,15 +17,18 @@ if (!existsSync('.next')) {
   process.exit(1);
 }
 
-// Start Next.js
-import { spawn } from 'child_process';
+// Start Next.js using npm start
+import { exec } from 'child_process';
 
-const nextProcess = spawn('node_modules/.bin/next.cmd', ['start', '-p', port], {
-  stdio: 'inherit',
+const command = `npm start`;
+console.log(`🔧 Executing: ${command}`);
+
+const nextProcess = exec(command, {
   cwd: process.cwd(),
   env: { 
     ...process.env,
-    NODE_ENV: 'production'
+    NODE_ENV: 'production',
+    PORT: port
   }
 });
 
