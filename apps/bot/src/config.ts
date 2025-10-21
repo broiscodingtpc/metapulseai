@@ -20,11 +20,11 @@ export const cfg = {
   maxImpactPct: Number(process.env.MAX_PRICE_IMPACT_01 || 25),
   minBuyerSeller: Number(process.env.MIN_BUYER_SELLER_RATIO || 1.1),
   llmKey: process.env.GROQ_API_KEY,
-  llmModel: process.env.GROQ_MODEL
+  llmModel: process.env.GROQ_MODEL || "llama-3.1-8b-instant" // Default model
 };
 
 // Debug logging
 console.log("🔧 Config loaded:");
 console.log("GROQ_API_KEY:", process.env.GROQ_API_KEY ? "✅ Set" : "❌ Missing");
-console.log("GROQ_MODEL:", process.env.GROQ_MODEL || "❌ Missing");
+console.log("GROQ_MODEL:", process.env.GROQ_MODEL || "⚠️ Using default: llama-3.1-8b-instant");
 console.log("Final llmModel:", cfg.llmModel);
