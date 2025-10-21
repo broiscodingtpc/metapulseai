@@ -3,5 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "main": "src/index.ts",
+  "scripts": {
+    "build": "echo 'Core package - no build needed'"
+  },
   "dependencies": {}
 }

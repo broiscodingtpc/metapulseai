@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "main": "src/index.ts",
+  "scripts": {
+    "build": "echo 'PumpPortal package - no build needed'"
+  },
   "dependencies": {
     "ws": "^8.18.0"
   }
