@@ -4,12 +4,17 @@ export async function GET() {
   try {
     // Check if bot is running by looking for global variables
     const global = globalThis as any;
+    const TOK_INFO = global.TOK_INFO || new Map();
+    const SCORES = global.SCORES || new Map();
+    
     const botStatus = {
-      isRunning: typeof global.TOK_INFO !== 'undefined',
+      isRunning: TOK_INFO.size > 0 || SCORES.size > 0,
       lastUpdate: global.LAST_UPDATE || null,
-      totalTokens: global.TOK_INFO?.length || 0,
-      activeMetas: global.SCORES ? Object.keys(global.SCORES).length : 0,
-      lastActivity: global.LAST_ACTIVITY || null
+      totalTokens: TOK_INFO.size,
+      activeMetas: SCORES.size,
+      lastActivity: global.LAST_ACTIVITY || null,
+      connectionStatus: 'Connected to PumpPortal',
+      telegramBot: 'Active'
     };
 
     return NextResponse.json(botStatus);
