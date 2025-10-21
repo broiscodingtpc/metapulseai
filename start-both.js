@@ -25,31 +25,29 @@ const botProcess = spawn('node', ['dist/index.js'], {
   }
 });
 
-// Wait a bit for bot to start
-setTimeout(() => {
-  console.log("🌐 Starting web app...");
-  const webProcess = spawn('node', ['start-railway-final.js'], {
-    cwd: process.cwd() + '/apps/web',
-    stdio: 'inherit',
-    env: { 
-      ...process.env,
-      NODE_ENV: 'production',
-      PORT: webPort
-    }
-  });
+// Start web app immediately (don't wait for bot)
+console.log("🌐 Starting web app...");
+const webProcess = spawn('node', ['start-railway-final.js'], {
+  cwd: process.cwd() + '/apps/web',
+  stdio: 'inherit',
+  env: { 
+    ...process.env,
+    NODE_ENV: 'production',
+    PORT: webPort
+  }
+});
 
-  webProcess.on('error', (error) => {
-    console.error('❌ Failed to start web app:', error);
-    process.exit(1);
-  });
+webProcess.on('error', (error) => {
+  console.error('❌ Failed to start web app:', error);
+  process.exit(1);
+});
 
-  webProcess.on('exit', (code) => {
-    console.log(`Web app exited with code ${code}`);
-    if (code !== 0) {
-      process.exit(code);
-    }
-  });
-}, 5000);
+webProcess.on('exit', (code) => {
+  console.log(`Web app exited with code ${code}`);
+  if (code !== 0) {
+    process.exit(code);
+  }
+});
 
 botProcess.on('error', (error) => {
   console.error('❌ Failed to start bot:', error);
