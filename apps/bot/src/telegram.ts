@@ -34,7 +34,7 @@ Choose an option from the menu below:`;
   bot.onText(/📊 Live Metas/, (msg: any) => {
     const chatId = msg.chat.id;
     // Get real data from the bot's memory
-    const metas = Array.from((globalThis as any).SCORES?.values() || [])
+    const metas = Array.from((globalThis as any).SCORES?.values() || [] as any[])
       .reduce((acc: any, score: any) => {
         const existing = acc.find((m: any) => m.label === score.label);
         if (existing) {
@@ -91,7 +91,7 @@ Choose an option from the menu below:`;
     const chatId = msg.chat.id;
     const totalTokens = (globalThis as any).SCORES?.size || 0;
     const totalTrades = (globalThis as any).ROLLUPS?.allMints().length || 0;
-    const metas = new Set(Array.from((globalThis as any).SCORES?.values() || []).map((s: any) => s.label)).size;
+    const metas = new Set(Array.from((globalThis as any).SCORES?.values() || [] as any[]).map((s: any) => s.label)).size;
     
     bot.sendMessage(chatId, `📊 Market Statistics\n\n• Total tokens analyzed: ${totalTokens}\n• Active metas: ${metas}\n• Total trades: ${totalTrades}\n• AI confidence: 95%\n• Last update: Just now`, mainMenu);
   });
