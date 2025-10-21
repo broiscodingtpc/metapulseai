@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Search, Filter, TrendingUp, TrendingDown, Eye, ExternalLink, Star } from 'lucide-react';
@@ -35,7 +35,7 @@ interface FeedData {
   topMetas: any[];
 }
 
-export default function TokensPage() {
+function TokensPageContent() {
   const searchParams = useSearchParams();
   const [data, setData] = useState<FeedData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -406,5 +406,20 @@ export default function TokensPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function TokensPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-300">Loading tokens...</p>
+        </div>
+      </div>
+    }>
+      <TokensPageContent />
+    </Suspense>
   );
 }
