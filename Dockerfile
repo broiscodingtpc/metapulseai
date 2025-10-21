@@ -29,4 +29,4 @@ EXPOSE 3000
 
 # Start web app
 WORKDIR /app/apps/web
-CMD ["node", "start.js"]
+CMD ["node", "start-ultra-simple.js"]
