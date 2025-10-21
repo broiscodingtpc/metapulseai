@@ -39,9 +39,7 @@ export default function CyberButton({
       onClick={onClick}
       disabled={disabled}
       className={`
-        relative overflow-hidden bg-gradient-to-r ${variants[variant]} 
-        text-white font-semibold rounded-lg transition-all duration-300 
-        hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed
+        cta-button button-glow
         ${sizes[size]} ${className}
       `}
     >

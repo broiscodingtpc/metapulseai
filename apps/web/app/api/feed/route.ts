@@ -2,52 +2,48 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    // Try to get real data from bot's global variables
-    if (typeof globalThis.TOK_INFO !== 'undefined' && globalThis.TOK_INFO.length > 0) {
-      const tokens = globalThis.TOK_INFO;
-      const scores = globalThis.SCORES || {};
-      const rollups = globalThis.ROLLUPS || {};
-
-      // Transform bot data to frontend format
-      const newTokens = tokens.slice(0, 50).map((token: any) => ({
-        address: token.address || token.tokenAddress || token.mint,
-        symbol: token.symbol || 'UNKNOWN',
-        name: token.name || 'Unknown Token',
-        score: scores[token.address] || token.totalScore || Math.random() * 100,
-        category: token.category || token.label || 'Unknown',
-        marketCap: token.marketCap || Math.random() * 1000000,
-        volume: token.volume || Math.random() * 100000,
-        price: token.price || Math.random() * 0.01,
-        change24h: token.change24h || (Math.random() - 0.5) * 100,
-        liquidity: token.liquidity || Math.random() * 100000,
-        holders: token.holders || Math.floor(Math.random() * 1000),
-        transactions: token.transactions || Math.floor(Math.random() * 100)
-      }));
-
-      const topMetas = Object.entries(rollups).map(([category, data]: [string, any]) => ({
-        category,
-        averageScore: data.averageScore || Math.random() * 100,
-        tokenCount: data.tokenCount || 0,
-        topTokens: data.topTokens || [],
-        marketCap: data.marketCap || Math.random() * 1000000,
-        volume: data.volume || Math.random() * 100000,
-        change24h: data.change24h || (Math.random() - 0.5) * 100,
-        trend: data.trend || (Math.random() > 0.5 ? 'up' : 'down')
-      }));
-
-      return NextResponse.json({
-        totalTokens: tokens.length,
-        activeMetas: Object.keys(rollups).length,
-        totalMarketCap: Object.values(rollups).reduce((sum: number, data: any) => sum + (data.marketCap || 0), 0),
-        totalVolume: Object.values(rollups).reduce((sum: number, data: any) => sum + (data.volume || 0), 0),
-        newTokens,
-        topMetas,
-        isLive: true,
-        lastUpdate: globalThis.LAST_UPDATE || new Date().toISOString()
+    // Try to fetch real data from bot HTTP server
+    try {
+      const botResponse = await fetch('http://localhost:3000/feed.json', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(5000)
       });
+
+      if (botResponse.ok) {
+        const botData = await botResponse.json();
+        
+        // Filter out mainstream tokens
+        const mainstreamTokens = ['USDC', 'SOL', 'BONK', 'JUP', 'mSOL', 'USD Coin', 'Solana', 'Bonk', 'Jupiter', 'Marinade Staked SOL'];
+        
+        const filteredTokens = botData.tokens?.filter((token: any) => {
+          const symbol = token.symbol?.toUpperCase();
+          const name = token.name?.toUpperCase();
+          return !mainstreamTokens.includes(symbol) && !mainstreamTokens.includes(name);
+        }) || [];
+
+        return NextResponse.json({
+          tokens: filteredTokens,
+          metas: botData.metas || {},
+          generatedAt: new Date().toISOString(),
+          stats: {
+            totalTokens: filteredTokens.length,
+            totalMetas: Object.keys(botData.metas || {}).length,
+            totalMarketCap: botData.stats?.totalMarketCap || 0,
+            totalVolume: botData.stats?.totalVolume || 0,
+          },
+          isLive: true,
+          lastUpdate: new Date().toISOString()
+        });
+      }
+    } catch (botError) {
+      console.log('Bot HTTP server not available, using fallback data');
     }
 
-    // Enhanced mock data with only new/trending tokens (no mainstream tokens)
+    // Fallback to mock data if bot is not available
     const mockTokens = [
       {
         address: '2zh1C864kyq7rAeFZg5pqsfovMnUPRbBiexw1JxGpump',
@@ -125,88 +121,49 @@ export async function GET() {
     for (let i = 0; i < 25; i++) {
       const categories = ['AI Agents', 'Meme', 'Gaming', 'DeFi', 'NFT', 'Celebrity', 'Frog', 'Seasonal'];
       const category = categories[Math.floor(Math.random() * categories.length)];
-      const symbols = ['TOKEN', 'COIN', 'AI', 'MEME', 'GAME', 'DEFI', 'NFT', 'FROG'];
-      const symbol = symbols[Math.floor(Math.random() * symbols.length)] + Math.floor(Math.random() * 1000);
-      
       mockTokens.push({
-        address: Math.random().toString(36).substr(2, 44),
-        symbol,
-        name: `${symbol} Token`,
-        score: Math.random() * 100,
-        category,
-        marketCap: Math.random() * 5000000,
-        volume: Math.random() * 500000,
-        price: Math.random() * 0.1,
-        change24h: (Math.random() - 0.5) * 50,
-        liquidity: Math.random() * 500000,
-        holders: Math.floor(Math.random() * 5000),
-        transactions: Math.floor(Math.random() * 2000)
+        address: `mockToken${i + 6}pump`,
+        symbol: `MOCK${i + 6}`,
+        name: `Mock Token ${i + 6}`,
+        score: Math.floor(Math.random() * (85 - 60 + 1)) + 60, // Scores between 60-85
+        category: category,
+        marketCap: Math.floor(Math.random() * (200000 - 50000 + 1)) + 50000, // Market cap between 50K-200K
+        volume: Math.floor(Math.random() * (80000 - 20000 + 1)) + 20000,
+        price: parseFloat((Math.random() * 0.0002).toFixed(6)),
+        change24h: parseFloat((Math.random() * 50).toFixed(1)),
+        liquidity: Math.floor(Math.random() * (40000 - 10000 + 1)) + 10000,
+        holders: Math.floor(Math.random() * (2000 - 500 + 1)) + 500,
+        transactions: Math.floor(Math.random() * (1000 - 100 + 1)) + 100
       });
     }
 
-    return NextResponse.json({
+    const mockMetas = mockTokens.reduce((acc, token) => {
+      if (!acc[token.category]) {
+        acc[token.category] = { count: 0, avgScore: 0, totalScore: 0 };
+      }
+      acc[token.category].count++;
+      acc[token.category].totalScore += token.score;
+      acc[token.category].avgScore = acc[token.category].totalScore / acc[token.category].count;
+      return acc;
+    }, {} as Record<string, { count: number; avgScore: number; totalScore: number }>);
+
+    const mockStats = {
       totalTokens: mockTokens.length,
-      activeMetas: 8,
-      totalMarketCap: 45678900,
-      totalVolume: 12345678,
-      newTokens: mockTokens,
-      topMetas: [
-        {
-          category: 'AI Agents',
-          averageScore: 78.5,
-          tokenCount: 45,
-          topTokens: ['AI1', 'AI2', 'AI3'],
-          marketCap: 5000000,
-          volume: 1000000,
-          change24h: 12.5,
-          trend: 'up'
-        },
-        {
-          category: 'Meme',
-          averageScore: 65.2,
-          tokenCount: 120,
-          topTokens: ['MEME1', 'MEME2', 'MEME3'],
-          marketCap: 8000000,
-          volume: 2000000,
-          change24h: -3.2,
-          trend: 'down'
-        },
-        {
-          category: 'Gaming',
-          averageScore: 72.8,
-          tokenCount: 35,
-          topTokens: ['GAME1', 'GAME2', 'GAME3'],
-          marketCap: 3000000,
-          volume: 800000,
-          change24h: 8.7,
-          trend: 'up'
-        },
-        {
-          category: 'DeFi',
-          averageScore: 85.1,
-          tokenCount: 28,
-          topTokens: ['DEFI1', 'DEFI2', 'DEFI3'],
-          marketCap: 6000000,
-          volume: 1500000,
-          change24h: 5.3,
-          trend: 'up'
-        },
-        {
-          category: 'Frog',
-          averageScore: 58.3,
-          tokenCount: 15,
-          topTokens: ['FROG1', 'FROG2', 'FROG3'],
-          marketCap: 2000000,
-          volume: 500000,
-          change24h: 15.2,
-          trend: 'up'
-        }
-      ],
-      isLive: false,
+      totalMetas: Object.keys(mockMetas).length,
+      totalMarketCap: mockTokens.reduce((sum, t) => sum + t.marketCap, 0),
+      totalVolume: mockTokens.reduce((sum, t) => sum + t.volume, 0)
+    };
+
+    return NextResponse.json({
+      tokens: mockTokens,
+      metas: mockMetas,
+      generatedAt: new Date().toISOString(),
+      stats: mockStats,
+      isLive: false, // Indicate mock data
       lastUpdate: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error fetching feed data:', error);
-    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch feed data' }, { status: 500 });
   }
 }

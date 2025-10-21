@@ -23,8 +23,8 @@ export default function CyberCard({
       transition={{ duration: 0.5 }}
       whileHover={hover ? { scale: 1.02, y: -5 } : {}}
       className={`
-        glass-effect rounded-xl p-6 transition-all duration-300
-        ${glow ? 'hover:shadow-cyber' : 'hover:shadow-glow'}
+        glass-panel rounded-xl p-6 transition-all duration-300
+        ${glow ? 'glow-pulse' : 'hover:shadow-neon-lg'}
         ${className}
       `}
     >

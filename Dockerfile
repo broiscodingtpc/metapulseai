@@ -47,8 +47,8 @@ COPY --from=base /app/apps/web/public ./apps/web/public
 COPY --from=base /app/packages/core/dist ./packages/core/dist
 COPY --from=base /app/packages/pumpportal/dist ./packages/pumpportal/dist
 
-# Copy environment file
-COPY .env ./
+    # Environment variables will be set via Railway's environment configuration
+    # No need to copy .env file as it contains sensitive data
 
 # Expose ports
 EXPOSE 3000 5174
