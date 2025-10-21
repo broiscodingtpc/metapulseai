@@ -19,7 +19,7 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Build applications
+# Build only what's necessary for production
 RUN pnpm --filter @metapulse/core build
 RUN pnpm --filter @metapulse/pumpportal build
 RUN pnpm --filter @metapulse/bot build

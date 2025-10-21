@@ -36,15 +36,21 @@ export default function HomePage() {
           
           <AnimatedText delay={0.6}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <CyberButton href="/tokens" className="text-lg px-8 py-4 cta-button">
-                Live DEX
-              </CyberButton>
-              <CyberButton href="/feed" variant="secondary" className="text-lg px-8 py-4 cta-button">
-                AI Feed
-              </CyberButton>
-              <CyberButton href="/presale" variant="accent" className="text-lg px-8 py-4 cta-button">
-                Join Presale
-              </CyberButton>
+              <Link href="/tokens">
+                <CyberButton className="text-lg px-8 py-4 cta-button">
+                  Live DEX
+                </CyberButton>
+              </Link>
+              <Link href="/feed">
+                <CyberButton variant="secondary" className="text-lg px-8 py-4 cta-button">
+                  AI Feed
+                </CyberButton>
+              </Link>
+              <Link href="/presale">
+                <CyberButton variant="accent" className="text-lg px-8 py-4 cta-button">
+                  Join Presale
+                </CyberButton>
+              </Link>
             </div>
           </AnimatedText>
         </div>
@@ -259,12 +265,16 @@ export default function HomePage() {
           
           <AnimatedText delay={0.4}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <CyberButton href="/presale" className="text-lg px-8 py-4 cta-button">
-                Join Presale
-              </CyberButton>
-              <CyberButton href="/feed" variant="secondary" className="text-lg px-8 py-4 cta-button">
-                View Live Feed
-              </CyberButton>
+              <Link href="/presale">
+                <CyberButton className="text-lg px-8 py-4 cta-button">
+                  Join Presale
+                </CyberButton>
+              </Link>
+              <Link href="/feed">
+                <CyberButton variant="secondary" className="text-lg px-8 py-4 cta-button">
+                  View Live Feed
+                </CyberButton>
+              </Link>
             </div>
           </AnimatedText>
         </div>
