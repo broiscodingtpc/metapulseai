@@ -8,13 +8,15 @@ interface CyberCardProps {
   className?: string;
   hover?: boolean;
   glow?: boolean;
+  onClick?: () => void;
 }
 
 export default function CyberCard({ 
   children, 
   className = '', 
   hover = true,
-  glow = false
+  glow = false,
+  onClick
 }: CyberCardProps) {
   return (
     <motion.div
@@ -22,6 +24,7 @@ export default function CyberCard({
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       whileHover={hover ? { scale: 1.02, y: -5 } : {}}
+      onClick={onClick}
       className={`
         glass-panel rounded-xl p-6 transition-all duration-300
         ${glow ? 'glow-pulse' : 'hover:shadow-neon-lg'}
