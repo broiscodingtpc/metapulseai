@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Search, Filter, TrendingUp, TrendingDown, Eye, ExternalLink, Star } from 'lucide-react';
 import CyberCard from '../components/CyberCard';
@@ -35,6 +36,7 @@ interface FeedData {
 }
 
 export default function TokensPage() {
+  const searchParams = useSearchParams();
   const [data, setData] = useState<FeedData | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,6 +61,14 @@ export default function TokensPage() {
     const interval = setInterval(fetchData, 2000); // Update every 2 seconds for live DEX feel
     return () => clearInterval(interval);
   }, []);
+
+  // Handle URL parameter for meta filter
+  useEffect(() => {
+    const metaParam = searchParams.get('meta');
+    if (metaParam) {
+      setFilterCategory(metaParam.toLowerCase());
+    }
+  }, [searchParams]);
 
   const formatNumber = (num: number) => {
     if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
@@ -149,6 +159,37 @@ export default function TokensPage() {
             </div>
           </AnimatedText>
         </div>
+
+        {/* Meta Filter Badge */}
+        {searchParams.get('meta') && (
+          <div className="mb-4">
+            <AnimatedText>
+              <div className="bg-primary-500/20 border border-primary-500/50 rounded-lg p-4 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Filter className="w-5 h-5 text-primary-400" />
+                  <div>
+                    <p className="text-white font-semibold">
+                      Filtered by Meta: <span className="text-primary-400 capitalize">{searchParams.get('meta')}</span>
+                    </p>
+                    <p className="text-slate-300 text-sm">
+                      Showing tokens from {searchParams.get('meta')} meta analysis
+                    </p>
+                  </div>
+                </div>
+                <CyberButton 
+                  variant="secondary" 
+                  size="sm"
+                  onClick={() => {
+                    setFilterCategory('all');
+                    window.history.pushState({}, '', '/tokens');
+                  }}
+                >
+                  Clear Filter
+                </CyberButton>
+              </div>
+            </AnimatedText>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="mb-8">

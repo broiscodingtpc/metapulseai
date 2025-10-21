@@ -36,7 +36,7 @@ export default function PresalePage() {
                 <h2 className="text-3xl font-bold gradient-text mb-4">Presale Coming Soon</h2>
                 <p className="text-slate-300 text-lg mb-6">Join our community to get early access</p>
                 <div className="flex justify-center gap-4">
-                  <a href="https://t.me/MetaPulseAIBot" target="_blank" rel="noopener noreferrer">
+                  <a href="https://t.me/metapulseai" target="_blank" rel="noopener noreferrer">
                     <CyberButton variant="primary" size="lg">
                       Join Telegram
                     </CyberButton>

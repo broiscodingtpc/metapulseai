@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { TrendingUp, Users, Activity, BarChart3, Target, Zap } from 'lucide-react';
 import CyberCard from '../components/CyberCard';
@@ -30,10 +31,12 @@ interface FeedData {
 }
 
 export default function MetasPage() {
+  const router = useRouter();
   const [data, setData] = useState<FeedData | null>(null);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'score' | 'tokens' | 'marketCap' | 'volume'>('score');
   const [selectedMeta, setSelectedMeta] = useState<MetaData | null>(null);
+  const [trackedMetas, setTrackedMetas] = useState<string[]>([]);
 
   const fetchData = async () => {
     try {
@@ -52,6 +55,36 @@ export default function MetasPage() {
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Load tracked metas from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('trackedMetas');
+    if (stored) {
+      setTrackedMetas(JSON.parse(stored));
+    }
+  }, []);
+
+  const handleViewTokens = (category: string) => {
+    // Navigate to tokens page with category filter
+    router.push(`/tokens?meta=${encodeURIComponent(category)}`);
+  };
+
+  const handleTrackMeta = (category: string) => {
+    setTrackedMetas((prev) => {
+      const isTracked = prev.includes(category);
+      const updated = isTracked
+        ? prev.filter((m) => m !== category)
+        : [...prev, category];
+      
+      // Save to localStorage
+      localStorage.setItem('trackedMetas', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const isMetaTracked = (category: string) => {
+    return trackedMetas.includes(category);
+  };
 
   const formatNumber = (num: number) => {
     if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
@@ -408,13 +441,21 @@ export default function MetasPage() {
               </div>
               
               <div className="flex space-x-4">
-                <CyberButton variant="primary" size="sm">
+                <CyberButton 
+                  variant="primary" 
+                  size="sm"
+                  onClick={() => handleViewTokens(selectedMeta.category)}
+                >
                   <TrendingUp className="w-4 h-4 mr-2" />
                   View Tokens
                 </CyberButton>
-                <CyberButton variant="secondary" size="sm">
+                <CyberButton 
+                  variant={isMetaTracked(selectedMeta.category) ? "primary" : "secondary"} 
+                  size="sm"
+                  onClick={() => handleTrackMeta(selectedMeta.category)}
+                >
                   <Activity className="w-4 h-4 mr-2" />
-                  Track Meta
+                  {isMetaTracked(selectedMeta.category) ? 'Untrack Meta' : 'Track Meta'}
                 </CyberButton>
               </div>
             </div>

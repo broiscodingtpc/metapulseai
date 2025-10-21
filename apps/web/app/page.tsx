@@ -27,7 +27,7 @@ export default function HomePage() {
             𝕏 Twitter
           </a>
         </div>
-        <a href="https://t.me/MetaPulseAIBot" target="_blank" rel="noopener noreferrer">
+        <a href="https://t.me/metapulseai" target="_blank" rel="noopener noreferrer">
           <CyberButton variant="accent" size="sm">
             Join Telegram
           </CyberButton>
