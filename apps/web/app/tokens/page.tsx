@@ -150,23 +150,23 @@ export default function TokensPage() {
           <CyberCard>
             <div className="grid md:grid-cols-4 gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-mid w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Search tokens..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-panel-dark border border-edge-grey rounded-lg text-text-high placeholder-text-mid focus:border-neon-cyan focus:outline-none focus:ring-2 focus:ring-neon-cyan/20"
+                  className="w-full pl-10 pr-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:border-primary-500 focus:outline-none"
                 />
               </div>
               
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="px-4 py-2 bg-panel-dark border border-edge-grey rounded-lg text-text-high focus:border-neon-cyan focus:outline-none focus:ring-2 focus:ring-neon-cyan/20"
+                className="px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-white focus:border-primary-500 focus:outline-none"
               >
                 {categories.map(category => (
-                  <option key={category} value={category} className="bg-panel-dark text-text-high">
+                  <option key={category} value={category}>
                     {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
                   </option>
                 ))}
@@ -175,12 +175,12 @@ export default function TokensPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-4 py-2 bg-panel-dark border border-edge-grey rounded-lg text-text-high focus:border-neon-cyan focus:outline-none focus:ring-2 focus:ring-neon-cyan/20"
+                className="px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-white focus:border-primary-500 focus:outline-none"
               >
-                <option value="score" className="bg-panel-dark text-text-high">Sort by Score</option>
-                <option value="marketCap" className="bg-panel-dark text-text-high">Sort by Market Cap</option>
-                <option value="volume" className="bg-panel-dark text-text-high">Sort by Volume</option>
-                <option value="change24h" className="bg-panel-dark text-text-high">Sort by 24h Change</option>
+                <option value="score">Sort by Score</option>
+                <option value="marketCap">Sort by Market Cap</option>
+                <option value="volume">Sort by Volume</option>
+                <option value="change24h">Sort by 24h Change</option>
               </select>
               
               <CyberButton onClick={fetchData} variant="primary" size="sm">

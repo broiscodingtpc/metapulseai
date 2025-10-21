@@ -1,121 +1,360 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Target, BarChart3, Brain, Zap, Activity } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, Brain, Zap, Target, Shield, TrendingUp, Users, Globe, DollarSign } from 'lucide-react';
 import Logo from './components/Logo';
-import AnimatedText from './components/AnimatedText';
 import CyberButton from './components/CyberButton';
 import CyberCard from './components/CyberCard';
+import AnimatedText from './components/AnimatedText';
 import ParticleBackground from './components/ParticleBackground';
-import AIActivity from './components/AIActivity';
 
 export default function HomePage() {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <Logo size="xl" />
-          <AnimatedText className="text-4xl font-bold text-green-400 mt-4">
-            MetaPulse AI
-          </AnimatedText>
-          <div className="mt-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400 mx-auto"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
+    <div className="min-h-screen bg-dark-950 relative overflow-hidden">
       <ParticleBackground />
       
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          className="text-center max-w-4xl mx-auto"
-        >
-          <AnimatedText 
-            className="text-6xl md:text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 mb-6"
+      {/* Navigation */}
+      <nav className="relative z-10 flex items-center justify-between p-6">
+        <Logo size="lg" />
+        <div className="hidden md:flex space-x-8">
+          <Link href="/" className="text-white hover:text-primary-400 transition-colors">Home</Link>
+          <Link href="/presale" className="text-white hover:text-primary-400 transition-colors">Presale</Link>
+          <Link href="/feed" className="text-white hover:text-primary-400 transition-colors">Live Feed</Link>
+          <Link href="/tokens" className="text-white hover:text-primary-400 transition-colors">Scanner</Link>
+          <Link href="/metas" className="text-white hover:text-primary-400 transition-colors">Metas</Link>
+        </div>
+        <CyberButton variant="accent" size="sm">
+          Join Telegram
+        </CyberButton>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative z-10 px-6 py-20 text-center">
+        <AnimatedText delay={0.2}>
+          <motion.h1 
+            className="text-6xl md:text-8xl font-bold mb-6"
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
           >
-            MetaPulse AI
-          </AnimatedText>
-          
+            <span className="gradient-text">MetaPulse AI Bot</span>
+          </motion.h1>
+        </AnimatedText>
+        
+        <AnimatedText delay={0.4}>
+          <motion.div 
+            className="text-2xl md:text-3xl font-semibold mb-4"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            <span className="neon-text">$PULSEAI</span>
+          </motion.div>
+        </AnimatedText>
+
+        <AnimatedText delay={0.6}>
           <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 1 }}
-            className="text-xl md:text-2xl text-gray-300 mb-8"
+            className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
           >
-            Feel the pulse before the market does
+            "Feel the pulse before the market does."
           </motion.p>
-          
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 1, duration: 0.8 }}
-            className="flex flex-wrap gap-4 justify-center mb-12"
+        </AnimatedText>
+
+        <AnimatedText delay={0.8}>
+          <motion.div 
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
           >
-            <CyberButton href="/feed" icon={<TrendingUp className="w-5 h-5" />}>
-              Live Feed
+            <CyberButton variant="primary" size="lg" className="group">
+              Join Presale <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
             </CyberButton>
-            <CyberButton href="/metas" icon={<Target className="w-5 h-5" />}>
-              Meta Analysis
-            </CyberButton>
-            <CyberButton href="/tokens" icon={<BarChart3 className="w-5 h-5" />}>
-              Token Scores
+            <CyberButton variant="secondary" size="lg" className="group">
+              Live Feed <TrendingUp className="ml-2 group-hover:scale-110 transition-transform" />
             </CyberButton>
           </motion.div>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 100 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.5, duration: 1 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mt-16"
-        >
-          <CyberCard
-            icon={<Brain className="w-8 h-8 text-green-400" />}
-            title="AI-Powered Analysis"
-            description="Advanced machine learning algorithms analyze market sentiment and token performance in real-time."
-            gradient="from-green-500/20 to-emerald-500/20"
-          />
-          <CyberCard
-            icon={<Zap className="w-8 h-8 text-blue-400" />}
-            title="Real-Time Intelligence"
-            description="Get instant notifications about emerging trends and high-potential tokens before they pump."
-            gradient="from-blue-500/20 to-cyan-500/20"
-          />
-          <CyberCard
-            icon={<Activity className="w-8 h-8 text-purple-400" />}
-            title="Market Pulse"
-            description="Track the heartbeat of the Solana ecosystem with comprehensive market intelligence."
-            gradient="from-purple-500/20 to-pink-500/20"
-          />
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2, duration: 1 }}
-          className="mt-16"
-        >
-          <AIActivity />
-        </motion.div>
-      </div>
+        </AnimatedText>
+      </section>
+
+
+      {/* Project Overview */}
+      <section className="relative z-10 px-6 py-20">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedText>
+            <h2 className="text-4xl md:text-5xl font-bold text-center mb-12 gradient-text">
+              Project Overview
+            </h2>
+          </AnimatedText>
+          
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <AnimatedText delay={0.2}>
+              <CyberCard glow>
+                <div className="flex items-center mb-4">
+                  <Brain className="w-8 h-8 text-primary-400 mr-3" />
+                  <h3 className="text-2xl font-bold text-white">AI-Powered Intelligence</h3>
+                </div>
+                <p className="text-slate-300 leading-relaxed">
+                  MetaPulse AI Bot is an AI-powered market intelligence system built on Solana. 
+                  It scans the blockchain and social activity in real time to detect emerging metas, 
+                  narratives, and token trends before they reach mainstream visibility.
+                </p>
+              </CyberCard>
+            </AnimatedText>
+
+            <AnimatedText delay={0.4}>
+              <CyberCard glow>
+                <div className="flex items-center mb-4">
+                  <Zap className="w-8 h-8 text-secondary-400 mr-3" />
+                  <h3 className="text-2xl font-bold text-white">Meta Sniffer</h3>
+                </div>
+                <p className="text-slate-300 leading-relaxed">
+                  The first release monitors every new token on Pump.fun and Raydium, using AI to classify 
+                  them into trend categories such as AI Agents, Frogs, Celebrities, Gaming, or Seasonal Metas.
+                </p>
+              </CyberCard>
+            </AnimatedText>
+          </div>
+
+          <AnimatedText delay={0.6}>
+            <CyberCard className="text-center">
+              <div className="flex items-center justify-center mb-4">
+                <Target className="w-8 h-8 text-accent-400 mr-3" />
+                <h3 className="text-2xl font-bold text-white">Predictive Edge</h3>
+              </div>
+              <p className="text-slate-300 leading-relaxed max-w-4xl mx-auto">
+                Users receive hourly Telegram alerts showing the most active metas and top-performing tokens, 
+                giving traders a predictive edge over the market.
+              </p>
+            </CyberCard>
+          </AnimatedText>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="relative z-10 px-6 py-20">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedText>
+            <h2 className="text-4xl md:text-5xl font-bold text-center mb-12 gradient-text">
+              Core Features
+            </h2>
+          </AnimatedText>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <AnimatedText delay={0.2}>
+              <CyberCard>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Brain className="w-8 h-8 text-primary-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-3">Early Detection</h3>
+                  <p className="text-slate-300">Detect hot narratives before they go mainstream</p>
+                </div>
+              </CyberCard>
+            </AnimatedText>
+
+            <AnimatedText delay={0.4}>
+              <CyberCard>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-secondary-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Zap className="w-8 h-8 text-secondary-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-3">High-Speed Reaction</h3>
+                  <p className="text-slate-300">React to market changes at lightning speed</p>
+                </div>
+              </CyberCard>
+            </AnimatedText>
+
+            <AnimatedText delay={0.6}>
+              <CyberCard>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-accent-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Shield className="w-8 h-8 text-accent-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-3">Long-term Value</h3>
+                  <p className="text-slate-300">Sustainable ecosystem with revenue sharing</p>
+                </div>
+              </CyberCard>
+            </AnimatedText>
+          </div>
+        </div>
+      </section>
+
+      {/* Rate Limit Notice */}
+      <section className="relative z-10 px-6 py-12">
+        <div className="max-w-4xl mx-auto">
+          <AnimatedText>
+            <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-xl p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                  <span className="text-yellow-400 text-lg">⚡</span>
+                </div>
+                <h3 className="text-xl font-bold text-white">AI Rate Limits & Future Upgrades</h3>
+              </div>
+              <p className="text-slate-300 leading-relaxed mb-4">
+                Currently operating within free tier limits (500K tokens/day). As we raise funds and develop, 
+                we will upgrade to higher rate limits for unlimited AI analysis and faster processing.
+              </p>
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Current Status:</span>
+                  <span className="text-yellow-400">Free Tier (Limited)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Future Upgrade:</span>
+                  <span className="text-green-400">Developer Tier (Unlimited)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">AI Analysis:</span>
+                  <span className="text-blue-400">Smart Fallback Active</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Upgrade Timeline:</span>
+                  <span className="text-purple-400">Post-Fundraising</span>
+                </div>
+              </div>
+            </div>
+          </AnimatedText>
+        </div>
+      </section>
+
+      {/* Monetization Model */}
+      <section className="relative z-10 px-6 py-20">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedText>
+            <h2 className="text-4xl md:text-5xl font-bold text-center mb-12 gradient-text">
+              Monetization & Value Creation
+            </h2>
+          </AnimatedText>
+          
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <AnimatedText delay={0.2}>
+              <CyberCard glow>
+                <div className="flex items-center mb-4">
+                  <DollarSign className="w-8 h-8 text-primary-400 mr-3" />
+                  <h3 className="text-2xl font-bold text-white">Paid Services Model</h3>
+                </div>
+                <p className="text-slate-300 leading-relaxed mb-4">
+                  All MetaPulse services will be paid exclusively with PULSEAI tokens. 
+                  This creates constant demand and utility for the token.
+                </p>
+                <ul className="text-slate-300 space-y-2">
+                  <li>• Premium AI analysis features</li>
+                  <li>• Advanced trading signals</li>
+                  <li>• Priority token alerts</li>
+                  <li>• Custom AI strategies</li>
+                </ul>
+              </CyberCard>
+            </AnimatedText>
+
+            <AnimatedText delay={0.4}>
+              <CyberCard glow>
+                <div className="flex items-center mb-4">
+                  <TrendingUp className="w-8 h-8 text-secondary-400 mr-3" />
+                  <h3 className="text-2xl font-bold text-white">Revenue Distribution</h3>
+                </div>
+                <p className="text-slate-300 leading-relaxed mb-4">
+                  All revenue from services, trading fees, and platform usage 
+                  goes directly into the PULSEAI chart, benefiting all holders.
+                </p>
+                <ul className="text-slate-300 space-y-2">
+                  <li>• 70% to token buybacks</li>
+                  <li>• 20% to development</li>
+                  <li>• 10% to marketing</li>
+                </ul>
+              </CyberCard>
+            </AnimatedText>
+          </div>
+        </div>
+      </section>
+
+      {/* Future Vision */}
+      <section className="relative z-10 px-6 py-20">
+        <div className="max-w-6xl mx-auto">
+          <AnimatedText>
+            <h2 className="text-4xl md:text-5xl font-bold text-center mb-12 gradient-text">
+              Future Vision
+            </h2>
+          </AnimatedText>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            <AnimatedText delay={0.2}>
+              <CyberCard glow>
+                <div className="flex items-center mb-4">
+                  <Target className="w-8 h-8 text-primary-400 mr-3" />
+                  <h3 className="text-2xl font-bold text-white">AI Sniper Module</h3>
+                </div>
+                <p className="text-slate-300 leading-relaxed">
+                  Automated trading system that executes buys based on AI predictions, 
+                  giving you the fastest possible reaction to market opportunities.
+                </p>
+              </CyberCard>
+            </AnimatedText>
+
+            <AnimatedText delay={0.4}>
+              <CyberCard glow>
+                <div className="flex items-center mb-4">
+                  <Globe className="w-8 h-8 text-secondary-400 mr-3" />
+                  <h3 className="text-2xl font-bold text-white">AI Launchpad</h3>
+                </div>
+                <p className="text-slate-300 leading-relaxed">
+                  Create and deploy tokens directly through MetaPulse's AI assistant, 
+                  making token creation accessible to everyone.
+                </p>
+              </CyberCard>
+            </AnimatedText>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="relative z-10 px-6 py-20">
+        <div className="max-w-4xl mx-auto text-center">
+          <AnimatedText>
+            <h2 className="text-4xl md:text-5xl font-bold mb-8 gradient-text">
+              Ready to Feel the Pulse?
+            </h2>
+          </AnimatedText>
+          
+          <AnimatedText delay={0.2}>
+            <p className="text-xl text-slate-300 mb-8">
+              Join the future of AI-powered trading and market intelligence.
+            </p>
+          </AnimatedText>
+          
+          <AnimatedText delay={0.4}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/presale">
+                <CyberButton variant="primary" size="lg" className="group">
+                  Join Presale <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+                </CyberButton>
+              </Link>
+              <Link href="/feed">
+                <CyberButton variant="secondary" size="lg" className="group">
+                  View Live Feed <TrendingUp className="ml-2 group-hover:scale-110 transition-transform" />
+                </CyberButton>
+              </Link>
+            </div>
+          </AnimatedText>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 px-6 py-12 border-t border-slate-800">
+        <div className="max-w-6xl mx-auto text-center">
+          <Logo size="lg" className="mx-auto mb-4" />
+          <p className="text-slate-400 mb-4">
+            MetaPulse AI Bot — $PULSEAI
+          </p>
+          <p className="text-slate-500 text-sm">
+            "Feel the pulse before the market does."
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
