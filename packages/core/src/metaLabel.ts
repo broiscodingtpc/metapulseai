@@ -11,25 +11,63 @@ let rateLimitInfo = {
 
 export function heuristicMeta(name?: string, symbol?: string, desc?: string): MetaOutput {
   const s = `${name ?? ""} ${symbol ?? ""} ${desc ?? ""}`.toLowerCase();
-  const tests: [string, RegExp][] = [
-    ["ai-agents", /\b(ai|agent|gpt|llm|nexus|neural|morph|bot|assistant|chat)/i],
-    ["frogs", /\b(pepe|frog|kermit|toad|amphibian)/i],
-    ["celeb", /\b(elon|trump|taylor|mrbeast|celebr|kardash|bieber)/i],
-    ["halloween", /\b(spook|ghost|pumpkin|howl|hallow|zombie|witch|vampire)/i],
-    ["gaming", /\b(game|arena|quest|pixel|8bit|esport|play|gamer|controller)/i],
-    ["doge-meme", /\b(doge|shiba|bonk|inu|dog|puppy|woof)/i],
-    ["defi", /\b(defi|yield|farm|liquidity|stake|swap|pool|vault)/i],
-    ["meme", /\b(meme|viral|wojak|chad|based|cringe)/i]
+  
+  // Advanced pattern matching with scoring
+  const tests: [string, RegExp, number][] = [
+    // High priority (viral potential)
+    ["ai-agents", /\b(ai|agent|gpt|llm|claude|gemini|neural|bot|assistant|chat|openai)/i, 75],
+    ["frogs", /\b(pepe|frog|kermit|toad|ribbit|amphibian)/i, 72],
+    ["celeb", /\b(elon|trump|taylor|mrbeast|kardash|kanye|bieber|celebrity)/i, 70],
+    
+    // Seasonal/trending
+    ["halloween", /\b(spook|ghost|pumpkin|witch|vampire|zombie|skeleton|haunted)/i, 68],
+    ["gaming", /\b(game|minecraft|fortnite|esport|gamer|play|arena|quest|pixel)/i, 68],
+    
+    // Meme categories
+    ["doge-meme", /\b(doge|shiba|bonk|inu|dog|puppy|woof|bark)/i, 70],
+    ["meme", /\b(meme|viral|wojak|chad|based|cringe|gigachad|sigma)/i, 65],
+    
+    // Finance
+    ["defi", /\b(defi|yield|farm|liquidity|stake|swap|pool|vault|apy)/i, 65],
+    
+    // Other
+    ["anime", /\b(anime|manga|kawaii|waifu|naruto|pokemon|otaku)/i, 65],
+    ["politics", /\b(politic|election|vote|govern|democrat|republican)/i, 60],
+    ["sports", /\b(sport|football|basketball|soccer|nba|nfl|athlete)/i, 60],
+    ["music", /\b(music|song|album|concert|festival|dj|artist|rapper)/i, 60],
+    ["art", /\b(art|nft|artist|paint|canvas|creative|design)/i, 60],
+    ["tech", /\b(tech|blockchain|web3|protocol|defi|crypto|solana)/i, 60]
   ];
   
   // Check each pattern and return first match
-  for (const [label, rx] of tests) {
+  for (const [label, rx, baseScore] of tests) {
     if (rx.test(s)) {
-      return { label, metaScore: 70, reason: `Heuristic match: detected ${label} keywords` };
+      // Boost score if multiple keywords found
+      const matches = s.match(rx);
+      const boost = matches && matches.length > 1 ? 5 : 0;
+      return { 
+        label, 
+        metaScore: Math.min(85, baseScore + boost), 
+        reason: `Strong ${label} signals detected - potential trend match` 
+      };
     }
   }
   
-  return { label: "unknown", metaScore: 50, reason: "No strong pattern match" };
+  // Check for red flags (spam indicators)
+  const spamPatterns = /\b(test|sample|demo|xxx|scam|rug)\b/i;
+  if (spamPatterns.test(s)) {
+    return { 
+      label: "unknown", 
+      metaScore: 20, 
+      reason: "⚠️ Potential spam detected - low quality signals" 
+    };
+  }
+  
+  return { 
+    label: "unknown", 
+    metaScore: 45, 
+    reason: "No strong meta pattern - needs more data" 
+  };
 }
 
 export async function llmMeta(
@@ -73,40 +111,45 @@ export async function llmMeta(
   
   try {
     console.log("🤖 Calling Groq API for meta analysis...");
-    const prompt = `You are MetaPulse AI, an advanced market intelligence system. Analyze this token and classify it into the most appropriate meta category. You can use existing categories or create new ones based on emerging patterns.
+    const prompt = `You are MetaPulse AI, an elite crypto market intelligence system. Your mission: identify HIGH-POTENTIAL metas that traders can profit from.
 
-EXISTING CATEGORIES:
-- ai-agents: AI, GPT, neural networks, machine learning, automation
-- frogs: Pepe, Kermit, frog memes, amphibian themes
-- celeb: Elon Musk, Trump, Taylor Swift, MrBeast, celebrities
-- halloween: Spooky, ghost, pumpkin, horror, Halloween themes
-- gaming: Games, esports, gaming platforms, gaming communities
-- doge-meme: Doge, Shiba Inu, dog memes, canine themes
-- politics: Political themes, elections, governance
-- nsfw: Adult content, explicit themes
-- defi: DeFi protocols, yield farming, liquidity, staking
-- meme: General memes, viral content, internet culture
-- anime: Anime, manga, Japanese culture, otaku themes
-- sports: Sports teams, athletes, competitions
-- music: Musicians, songs, music industry
-- art: NFTs, digital art, creative projects
-- tech: Technology, innovation, startups, tech companies
-- unknown: Unclear or insufficient information
+TRENDING CATEGORIES (Prioritize these):
+🤖 ai-agents: AI, GPT, agents, neural networks, Claude, Gemini, chatbots, assistants
+🐸 frogs: Pepe, Kermit, frog memes, amphibian, toad, ribbit
+⭐ celeb: Elon, Trump, Taylor Swift, Kardashian, celebrity names
+🎃 halloween: Spooky, ghost, pumpkin, witch, vampire, zombie
+🎮 gaming: Games, esports, Minecraft, Fortnite, gaming platforms
+🐕 doge-meme: Doge, Shiba, Bonk, dog memes, woof, puppy
+🏛️ politics: Elections, political figures, governance, voting
+💰 defi: DeFi, yield, farm, swap, liquidity, vault, staking
+😂 meme: Viral memes, wojak, chad, internet culture
+🎌 anime: Anime characters, manga, kawaii, otaku
+⚽ sports: Teams, athletes, World Cup, Olympics
+🎵 music: Musicians, songs, concerts, festivals
+🎨 art: NFTs, digital art, artists, creative
+💻 tech: Blockchain, crypto tech, Web3, protocols
 
-ANALYSIS INSTRUCTIONS:
-1. Look for emerging patterns and trends
-2. Create new categories if you see a new meta emerging
-3. Consider the token's name, symbol, and any available description
-4. Analyze market stats for trend indicators
-5. Provide a metaScore 0-100 based on trend potential and market activity
+SCORING CRITERIA:
+🔥 90-100: Viral potential, strong trend, high activity
+⚡ 70-89: Good momentum, growing trend
+💎 50-69: Moderate interest, watchlist material
+⚠️ 30-49: Low activity, risky
+❌ 0-29: Very weak, likely spam
 
-Token Info:
-- Name: ${input.name || 'Unknown'}
-- Symbol: ${input.symbol || 'Unknown'}  
-- Description: ${input.desc || 'No description'}
-- Stats: ${JSON.stringify(input.stats)}
+ANALYZE THIS TOKEN:
+Name: ${input.name || 'Unknown'}
+Symbol: ${input.symbol || 'Unknown'}
+Market Activity: ${input.stats?.buyers || 0} buyers, ${input.stats?.sellers || 0} sellers
+Initial Buy: ${input.stats?.solAmount || 0} SOL
+Market Cap: $${input.stats?.marketCap || 0}
 
-Respond with JSON only: {"label": "category", "metaScore": number, "reason": "explanation"}`;
+CRITICAL: Look for:
+- Is this part of a trending narrative?
+- Does the name/symbol match current viral themes?
+- Is there whale activity (large buys)?
+- Are there multiple buyers (organic interest)?
+
+Respond with JSON only: {"label": "category", "metaScore": number, "reason": "short explanation with trading insight"}`;
 
     const requestBody = { 
       model, 

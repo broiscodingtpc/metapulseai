@@ -18,6 +18,9 @@ interface TokenCardProps {
     detectedAt?: string;
     analyzedAt?: string;
     icon?: string;
+    riskLevel?: string;
+    riskScore?: number;
+    riskFlags?: string[];
   };
   index?: number;
 }
@@ -143,6 +146,33 @@ export default function TokenCard({ token, index = 0 }: TokenCardProps) {
           <p className="text-purple-400 font-bold">{token.metaScore || 0}</p>
         </div>
       </div>
+
+      {/* Risk Level */}
+      {token.riskLevel && (
+        <div className={`rounded-lg p-2 mb-3 ${
+          token.riskLevel === 'LOW' ? 'bg-green-500/10 border border-green-500/30' :
+          token.riskLevel === 'MEDIUM' ? 'bg-yellow-500/10 border border-yellow-500/30' :
+          token.riskLevel === 'HIGH' ? 'bg-orange-500/10 border border-orange-500/30' :
+          'bg-red-500/10 border border-red-500/30'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-300">Risk Assessment</span>
+            <span className={`text-xs font-bold ${
+              token.riskLevel === 'LOW' ? 'text-green-400' :
+              token.riskLevel === 'MEDIUM' ? 'text-yellow-400' :
+              token.riskLevel === 'HIGH' ? 'text-orange-400' :
+              'text-red-400'
+            }`}>
+              {token.riskLevel === 'LOW' ? '🟢' :
+               token.riskLevel === 'MEDIUM' ? '🟡' :
+               token.riskLevel === 'HIGH' ? '🟠' : '🔴'} {token.riskLevel}
+            </span>
+          </div>
+          {token.riskFlags && token.riskFlags.length > 0 && (
+            <p className="text-xs text-slate-400 mt-1">{token.riskFlags[0]}</p>
+          )}
+        </div>
+      )}
 
       {/* AI Reason */}
       {token.reason && (

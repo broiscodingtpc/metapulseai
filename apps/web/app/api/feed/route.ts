@@ -20,7 +20,13 @@ export async function GET() {
           symbol: token.symbol || 'Unknown',
           name: token.name || 'Unknown Token',
           score: token.score || 0,
+          techScore: token.techScore || 0,
+          metaScore: token.metaScore || 0,
           category: token.category || 'unknown',
+          reason: token.reason || '',
+          riskLevel: token.riskLevel,
+          riskScore: token.riskScore,
+          riskFlags: token.riskFlags,
           marketCap: Math.random() * 1000000, // Will be replaced with real data
           volume: Math.random() * 500000,
           price: Math.random() * 0.001,
@@ -28,6 +34,8 @@ export async function GET() {
           liquidity: Math.random() * 100000,
           holders: Math.floor(Math.random() * 1000),
           transactions: Math.floor(Math.random() * 5000),
+          detectedAt: token.detectedAt,
+          analyzedAt: token.analyzedAt,
           timestamp: botData.generatedAt,
           description: token.desc || '',
           icon: `https://api.dicebear.com/7.x/shapes/svg?seed=${token.address}` // Generate unique icon

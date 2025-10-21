@@ -2,7 +2,7 @@ import "dotenv/config";
 import { connectPumpPortal } from "./ws.js";
 import { cfg } from "./config.js";
 import { Rollups } from "./rollups.js";
-import { techScore, totalScore } from "@metapulse/core";
+import { techScore, totalScore, analyzeRisk, getRiskEmoji } from "@metapulse/core";
 import { labelMeta } from "./metas.js";
 import { makeBot, sendDigest, setupBotCommands } from "./telegram.js";
 import { schedule } from "./scheduler.js";
@@ -25,6 +25,9 @@ const SCORES = new Map<string, {
   label: string;
   metaScore?: number;
   reason?: string;
+  riskLevel?: string;
+  riskScore?: number;
+  riskFlags?: string[];
 }>();
 
 // Make variables globally accessible for Telegram bot
@@ -80,6 +83,19 @@ connectPumpPortal(cfg.apiKey, async (msg: any) => {
     }, { minUniqueBuyers: cfg.minUniqueBuyers, maxImpactPct: cfg.maxImpactPct, minBuyerSeller: cfg.minBuyerSeller });
 
     const meta = await labelMeta({ name: m.name, symbol: m.symbol, desc: m.uri, stats: mockStats }, cfg.llmKey, cfg.llmModel);
+    
+    // Analyze risk
+    const risk = analyzeRisk({
+      initialBuy: m.initialBuy,
+      solAmount: m.solAmount,
+      buyers: mockStats.buyers,
+      sellers: mockStats.sellers,
+      uniqBuyers: mockStats.uniqBuyers,
+      marketCap: m.marketCapSol,
+      name: m.name,
+      symbol: m.symbol
+    });
+    
     const total = totalScore(tech.score, meta.metaScore);
     SCORES.set(m.mint, { 
       tech: tech.score, 
@@ -87,7 +103,10 @@ connectPumpPortal(cfg.apiKey, async (msg: any) => {
       total, 
       label: meta.label,
       metaScore: meta.metaScore,
-      reason: meta.reason
+      reason: meta.reason,
+      riskLevel: risk.riskLevel,
+      riskScore: risk.score,
+      riskFlags: risk.flags
     });
     
     // Update analyzedAt timestamp
@@ -99,7 +118,8 @@ connectPumpPortal(cfg.apiKey, async (msg: any) => {
       });
     }
     
-    console.log("📊 Token scored:", m.name || "Unknown", "Score:", total, "Meta:", meta.label);
+    const riskEmoji = getRiskEmoji(risk.riskLevel);
+    console.log(`📊 Token scored: ${m.name || "Unknown"} | Score: ${total} | Meta: ${meta.label} | Risk: ${riskEmoji} ${risk.riskLevel}`);
   }
   
   // Handle trade events (if we get them)
@@ -148,23 +168,60 @@ setupBotCommands(bot);
 
 async function makeFeedAndNotify() {
   const mints = Array.from(SCORES.keys());
-  const tokens = mints
-    .map(mint => {
-      const s = SCORES.get(mint)!; const info = TOK_INFO.get(mint) || {};
-      return { mint, name: info.name, symbol: info.symbol, totalScore: s.total, label: s.label };
-    })
+  
+  // Remove duplicates by symbol (keep highest score)
+  const uniqueTokens = new Map<string, any>();
+  mints.forEach(mint => {
+    const s = SCORES.get(mint)!;
+    const info = TOK_INFO.get(mint) || {};
+    const symbol = info.symbol || mint.slice(0, 8);
+    
+    const existing = uniqueTokens.get(symbol);
+    if (!existing || s.total > existing.totalScore) {
+      uniqueTokens.set(symbol, {
+        mint,
+        name: info.name,
+        symbol: info.symbol,
+        totalScore: s.total,
+        label: s.label,
+        techScore: s.tech,
+        metaScore: s.metaScore || s.meta
+      });
+    }
+  });
+  
+  const tokens = Array.from(uniqueTokens.values())
     .sort((a, b) => b.totalScore - a.totalScore)
     .slice(0, cfg.topTokensLimit);
 
-  const byMeta = new Map<string, { count: number; sum: number }>();
-  for (const t of tokens) {
-    const cur = byMeta.get(t.label) || { count: 0, sum: 0 };
-    cur.count += 1; cur.sum += t.totalScore;
-    byMeta.set(t.label, cur);
-  }
+  // Calculate metas from ALL tokens, not just top ones
+  const byMeta = new Map<string, { count: number; sum: number; tokens: Set<string> }>();
+  Array.from(SCORES.entries()).forEach(([mint, s]) => {
+    const cur = byMeta.get(s.label) || { count: 0, sum: 0, tokens: new Set() };
+    const info = TOK_INFO.get(mint);
+    const symbol = info?.symbol || mint.slice(0, 8);
+    
+    // Only count unique symbols
+    if (!cur.tokens.has(symbol)) {
+      cur.count += 1;
+      cur.sum += s.total;
+      cur.tokens.add(symbol);
+      byMeta.set(s.label, cur);
+    }
+  });
+  
   const metas = Array.from(byMeta.entries())
-    .map(([label, v]) => ({ label, count: v.count, avgScore: Math.round(v.sum / v.count) }))
-    .sort((a, b) => b.avgScore - a.avgScore)
+    .map(([label, v]) => ({ 
+      label, 
+      count: v.count, 
+      avgScore: Math.round(v.sum / v.count) 
+    }))
+    .filter(m => m.label !== 'unknown' || m.count >= 3) // Filter out weak unknowns
+    .sort((a, b) => {
+      // Sort by score, then by count
+      if (Math.abs(b.avgScore - a.avgScore) > 5) return b.avgScore - a.avgScore;
+      return b.count - a.count;
+    })
     .slice(0, cfg.topMetasLimit);
 
   // dump feed JSON for website
@@ -210,6 +267,9 @@ const server = http.createServer((req, res) => {
           metaScore: scoreData?.metaScore || 0,
           category: scoreData?.label || 'unknown',
           reason: scoreData?.reason || '',
+          riskLevel: scoreData?.riskLevel,
+          riskScore: scoreData?.riskScore,
+          riskFlags: scoreData?.riskFlags,
           detectedAt: info.detectedAt,
           analyzedAt: info.analyzedAt
         };
