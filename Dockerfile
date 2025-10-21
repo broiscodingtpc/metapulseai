@@ -1,22 +1,24 @@
-# Ultra-simple Dockerfile for Railway
+# MetaPulse AI Bot - Railway Optimized
+# Force rebuild - no .env copy needed
 FROM node:18-alpine
 
+# Install pnpm globally
+RUN npm install -g pnpm
+
+# Set working directory
 WORKDIR /app
 
-# Copy everything
+# Copy all files
 COPY . .
-
-# Install pnpm
-RUN npm install -g pnpm
 
 # Install dependencies
 RUN pnpm install
 
-# Build
+# Build all packages
 RUN pnpm build
 
-# Expose ports
+# Expose ports for bot and web
 EXPOSE 3000 5174
 
-# Start services
+# Start both services
 CMD ["sh", "-c", "pnpm start:bot & pnpm start:web"]
