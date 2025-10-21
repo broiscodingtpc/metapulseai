@@ -4,7 +4,7 @@ import { cfg } from "./config.js";
 import { Rollups } from "./rollups.js";
 import { techScore, totalScore, analyzeRisk, getRiskEmoji } from "@metapulse/core";
 import { labelMeta } from "./metas.js";
-import { makeBot, sendDigest, setupBotCommands } from "./telegram.js";
+import { makeBot, sendDigest, setupBotCommands, sendBuySignals } from "./telegram.js";
 import { schedule } from "./scheduler.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -240,7 +240,20 @@ async function makeFeedAndNotify() {
 schedule(cfg.cron, () => { makeFeedAndNotify().catch(() => {}); });
 setTimeout(() => { makeFeedAndNotify().catch(() => {}); }, 30_000);
 
-console.log("MetaPulse AI Bot is live: hourly digests enabled.");
+// Schedule hourly buy signals with filters
+schedule("0 * * * *", async () => { 
+  if (cfg.telegramChatId) {
+    await sendBuySignals(bot, cfg.telegramChatId);
+  }
+});
+// Run first buy signal after 60s warmup
+setTimeout(() => { 
+  if (cfg.telegramChatId) {
+    sendBuySignals(bot, cfg.telegramChatId).catch(() => {}); 
+  }
+}, 60_000);
+
+console.log("MetaPulse AI Bot is live: hourly digests & buy signals enabled.");
 
 // Create HTTP server for API endpoints
 const server = http.createServer((req, res) => {

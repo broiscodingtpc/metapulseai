@@ -29,8 +29,9 @@ export function setupBotCommands(bot: TelegramBot) {
     reply_markup: {
       keyboard: [
     [ { text: "📊 Live Metas" }, { text: "🔥 Top Tokens" } ],
-    [ { text: "📈 Market Stats" }, { text: "⚙️ Settings" } ],
-    [ { text: "ℹ️ About" }, { text: "🌐 Website" } ]
+    [ { text: "💎 Buy Signals" }, { text: "📈 Market Stats" } ],
+    [ { text: "⚙️ Settings" }, { text: "ℹ️ About" } ],
+    [ { text: "🌐 Website" } ]
       ],
       resize_keyboard: true,
       one_time_keyboard: false
@@ -199,14 +200,23 @@ Phase 4: 🚧 Revenue Dashboard
 /help - Show this help message
 /status - Bot status and uptime
 /website - Get website link
+/buysignals - Get filtered buy opportunities
 
 📊 Use the menu buttons to navigate:
 • Live Metas - View trending categories
 • Top Tokens - See best performing tokens
+• Buy Signals - Top 10 filtered tokens (hourly auto-updates)
 • Market Stats - Current market overview
 • Settings - Configure your preferences
 • About - Learn more about MetaPulse
-• Website - Access web interface`;
+• Website - Access web interface
+
+💎 Buy Signals Filters:
+• Liquidity ≥ $80,000
+• Market Cap: $1M - $80M
+• Pair Age ≤ 60 hours
+• Transactions ≥ 3,000
+• Sorted by Volume`;
     bot.sendMessage(chatId, helpText, mainMenu);
   });
 
@@ -226,6 +236,20 @@ Phase 4: 🚧 Revenue Dashboard
   bot.onText(/\/website/, (msg: any) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, "🌐 MetaPulse Website\n\nMain site: https://www.metapulse.tech\nLive metas: https://www.metapulse.tech/metas", mainMenu);
+  });
+
+  // Handle buy signals command
+  bot.onText(/\/buysignals/, async (msg: any) => {
+    const chatId = msg.chat.id;
+    bot.sendMessage(chatId, "🔍 Scanning for buy opportunities...\n\nPlease wait...", mainMenu);
+    await sendBuySignals(bot, chatId);
+  });
+
+  // Add buy signals button to main menu
+  bot.onText(/💎 Buy Signals/, async (msg: any) => {
+    const chatId = msg.chat.id;
+    bot.sendMessage(chatId, "🔍 Scanning top tokens with buy criteria...", mainMenu);
+    await sendBuySignals(bot, chatId);
   });
 }
 
@@ -283,4 +307,133 @@ export async function sendDigest(bot: TelegramBot, chatId: string | number, payl
     parse_mode: 'Markdown',
     disable_web_page_preview: true 
   });
+}
+
+interface BuySignalToken {
+  address: string;
+  name: string;
+  symbol: string;
+  price: number;
+  volume24h: number;
+  liquidity: number;
+  marketCap: number;
+  pairAge: number;
+  transactions24h: number;
+  priceChange24h: number;
+}
+
+export async function sendBuySignals(bot: TelegramBot, chatId: string | number) {
+  try {
+    console.log('🔍 Fetching buy signal tokens from DexScreener...');
+    
+    // Fetch latest tokens from DexScreener Solana
+    const response = await fetch('https://api.dexscreener.com/latest/dex/tokens/solana');
+    const data = await response.json();
+    
+    if (!data.pairs || data.pairs.length === 0) {
+      console.log('⚠️ No pairs data available from DexScreener');
+      return;
+    }
+
+    // Filter tokens based on criteria
+    const now = Date.now();
+    const filteredTokens: BuySignalToken[] = data.pairs
+      .filter((pair: any) => {
+        // Extract data
+        const liquidity = parseFloat(pair.liquidity?.usd || 0);
+        const marketCap = parseFloat(pair.fdv || pair.marketCap || 0);
+        const pairCreatedAt = pair.pairCreatedAt || 0;
+        const pairAgeHours = (now - pairCreatedAt) / (1000 * 60 * 60);
+        const transactions24h = (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0);
+        
+        // Apply filters
+        return (
+          liquidity >= 80000 &&
+          marketCap >= 1000000 &&
+          marketCap <= 80000000 &&
+          pairAgeHours <= 60 &&
+          transactions24h >= 3000
+        );
+      })
+      .map((pair: any) => ({
+        address: pair.baseToken?.address || '',
+        name: pair.baseToken?.name || 'Unknown',
+        symbol: pair.baseToken?.symbol || '???',
+        price: parseFloat(pair.priceUsd || 0),
+        volume24h: parseFloat(pair.volume?.h24 || 0),
+        liquidity: parseFloat(pair.liquidity?.usd || 0),
+        marketCap: parseFloat(pair.fdv || pair.marketCap || 0),
+        pairAge: (now - (pair.pairCreatedAt || 0)) / (1000 * 60 * 60),
+        transactions24h: (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0),
+        priceChange24h: parseFloat(pair.priceChange?.h24 || 0)
+      }))
+      .sort((a: BuySignalToken, b: BuySignalToken) => b.volume24h - a.volume24h)
+      .slice(0, 10);
+
+    if (filteredTokens.length === 0) {
+      console.log('📊 No tokens matching buy criteria found');
+      await bot.sendMessage(chatId, 
+        "🔍 **Buy Signals Update**\n\n" +
+        "No tokens currently match the buy criteria:\n" +
+        "• Liquidity ≥ $80K\n" +
+        "• Market Cap: $1M - $80M\n" +
+        "• Pair Age ≤ 60 hours\n" +
+        "• Transactions ≥ 3,000\n\n" +
+        "The AI will keep scanning... 🤖",
+        { parse_mode: 'Markdown' }
+      );
+      return;
+    }
+
+    // Format tokens for message
+    const formatNumber = (num: number) => {
+      if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+      if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+      if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+      return num.toFixed(2);
+    };
+
+    const tokenLines = filteredTokens.map((token, i) => {
+      const priceEmoji = token.priceChange24h >= 10 ? '🚀' : 
+                        token.priceChange24h >= 0 ? '📈' : 
+                        token.priceChange24h >= -10 ? '📉' : '🔻';
+      const changeSign = token.priceChange24h >= 0 ? '+' : '';
+      
+      return [
+        `**${i + 1}. ${token.symbol}** - ${token.name}`,
+        `   ${priceEmoji} Price: $${token.price.toFixed(8)} (${changeSign}${token.priceChange24h.toFixed(2)}%)`,
+        `   💰 MCap: $${formatNumber(token.marketCap)} | 💧 Liq: $${formatNumber(token.liquidity)}`,
+        `   📊 Vol: $${formatNumber(token.volume24h)} | 🔄 Txns: ${formatNumber(token.transactions24h)}`,
+        `   ⏰ Age: ${token.pairAge.toFixed(1)}h`,
+        `   🔗 \`${token.address}\``,
+        ''
+      ].join('\n');
+    });
+
+    const text = [
+      "💎 **BUY SIGNALS - Top 10 Tokens**",
+      "",
+      "✅ **Filters Applied:**",
+      "• Liquidity: ≥ $80,000",
+      "• Market Cap: $1M - $80M", 
+      "• Pair Age: ≤ 60 hours",
+      "• 24h Transactions: ≥ 3,000",
+      "• Sorted by: Volume (High to Low)",
+      "",
+      "🎯 **Top Opportunities:**",
+      "",
+      ...tokenLines,
+      "⚠️ **Disclaimer:** DYOR. Not financial advice.",
+      "🤖 Powered by MetaPulse AI"
+    ].join("\n");
+
+    await bot.sendMessage(chatId, text, { 
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true 
+    });
+    
+    console.log(`✅ Buy signals sent successfully (${filteredTokens.length} tokens)`);
+  } catch (error) {
+    console.error('❌ Error fetching/sending buy signals:', error);
+  }
 }
