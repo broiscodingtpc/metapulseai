@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 5174",
     "build": "next build",
-    "start": "next start -p 5174"
+    "start": "node start-with-bot.js"
   },
   "dependencies": {
     "next": "14.2.4",

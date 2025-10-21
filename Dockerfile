@@ -24,8 +24,8 @@ COPY . .
 # Build all packages and applications
 RUN pnpm build
 
-# Expose ports for bot (3000) and web (5174)
-EXPOSE 3000 5174
+# Expose port for web app
+EXPOSE 5174
 
-# Start both services in background
-CMD ["sh", "-c", "pnpm start:bot & pnpm start:web"]
+# Start web app (which includes bot API endpoints)
+CMD ["pnpm", "start:web"]
