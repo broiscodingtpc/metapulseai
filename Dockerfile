@@ -23,9 +23,11 @@ COPY . .
 # Build all packages and applications
 RUN pnpm build
 
-# Expose ports for both services
-EXPOSE 3000 3001
+# Set working directory to web app
+WORKDIR /app/apps/web
 
-# Start both services
-WORKDIR /app
-CMD ["node", "start-both.js"]
+# Expose port for web app
+EXPOSE 3000
+
+# Start web app only for now
+CMD ["node", "start-railway-final.js"]
