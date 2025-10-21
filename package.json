@@ -9,8 +9,7 @@
     "build": "pnpm -r build",
     "start:bot": "pnpm --filter @metapulse/bot start",
     "start:web": "pnpm --filter @metapulse/web start",
-    "start": "pnpm dev:bot & pnpm dev:web",
-    "postinstall": "pnpm install"
+    "start": "pnpm dev:bot & pnpm dev:web"
   },
   "engines": {
     "node": ">=18.0.0",
