@@ -1,11 +1,11 @@
 import "dotenv/config";
-import { connectPumpPortal } from "./ws";
-import { cfg } from "./config";
-import { Rollups } from "./rollups";
+import { connectPumpPortal } from "./ws.js";
+import { cfg } from "./config.js";
+import { Rollups } from "./rollups.js";
 import { techScore, totalScore } from "@metapulse/core";
-import { labelMeta } from "./metas";
-import { makeBot, sendDigest, setupBotCommands } from "./telegram";
-import { schedule } from "./scheduler";
+import { labelMeta } from "./metas.js";
+import { makeBot, sendDigest, setupBotCommands } from "./telegram.js";
+import { schedule } from "./scheduler.js";
 import fs from "node:fs";
 import path from "node:path";
 import http from "node:http";
@@ -194,10 +194,10 @@ const server = http.createServer((req, res) => {
   res.end('Not Found');
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🤖 Bot HTTP server running on port ${PORT}`);
+const BOT_PORT = process.env.BOT_PORT || 3001;
+server.listen(BOT_PORT, () => {
+  console.log(`🤖 Bot HTTP server running on port ${BOT_PORT}`);
   console.log(`📊 API endpoints:`);
-  console.log(`   - http://localhost:${PORT}/feed.json`);
-  console.log(`   - http://localhost:${PORT}/status`);
+  console.log(`   - http://localhost:${BOT_PORT}/feed.json`);
+  console.log(`   - http://localhost:${BOT_PORT}/status`);
 });
