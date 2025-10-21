@@ -6,6 +6,8 @@ import { ReactNode } from 'react';
 interface CyberButtonProps {
   children: ReactNode;
   onClick?: () => void;
+  href?: string;
+  icon?: ReactNode;
   variant?: 'primary' | 'secondary' | 'accent';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
@@ -15,6 +17,8 @@ interface CyberButtonProps {
 export default function CyberButton({ 
   children, 
   onClick, 
+  href,
+  icon,
   variant = 'primary', 
   size = 'md',
   className = '',
@@ -32,24 +36,33 @@ export default function CyberButton({
     lg: 'px-8 py-4 text-lg'
   };
 
+  const ButtonComponent = href ? 'a' : 'button';
+  const buttonProps = href ? { href } : { onClick, disabled };
+
   return (
-    <motion.button
+    <motion.div
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      onClick={onClick}
-      disabled={disabled}
-      className={`
-        cta-button button-glow
-        ${sizes[size]} ${className}
-      `}
     >
-      <motion.div
-        className="absolute inset-0 bg-white/20"
-        initial={{ x: '-100%' }}
-        whileHover={{ x: '100%' }}
-        transition={{ duration: 0.6 }}
-      />
-      <span className="relative z-10">{children}</span>
-    </motion.button>
+      <ButtonComponent
+        {...buttonProps}
+        className={`
+          cta-button button-glow
+          ${sizes[size]} ${className}
+          inline-flex items-center gap-2
+        `}
+      >
+        <motion.div
+          className="absolute inset-0 bg-white/20"
+          initial={{ x: '-100%' }}
+          whileHover={{ x: '100%' }}
+          transition={{ duration: 0.6 }}
+        />
+        <span className="relative z-10 flex items-center gap-2">
+          {icon}
+          {children}
+        </span>
+      </ButtonComponent>
+    </motion.div>
   );
 }

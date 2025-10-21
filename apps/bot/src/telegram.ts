@@ -1,7 +1,26 @@
 import TelegramBot from "node-telegram-bot-api";
 
 export function makeBot(token: string) {
-  return new TelegramBot(token, { polling: true });
+  const bot = new TelegramBot(token, { 
+    polling: {
+      interval: 1000,
+      autoStart: true,
+      params: {
+        timeout: 10
+      }
+    }
+  });
+  
+  // Handle polling errors to prevent conflicts
+  bot.on('polling_error', (error) => {
+    console.error('❌ Telegram polling error:', error.message);
+    if (error.message.includes('409 Conflict')) {
+      console.log('⚠️ Another bot instance detected. Stopping polling...');
+      bot.stopPolling();
+    }
+  });
+  
+  return bot;
 }
 
 export function setupBotCommands(bot: TelegramBot) {

@@ -4,7 +4,11 @@ import { motion } from 'framer-motion';
 import { ReactNode } from 'react';
 
 interface CyberCardProps {
-  children: ReactNode;
+  children?: ReactNode;
+  icon?: ReactNode;
+  title?: string;
+  description?: string;
+  gradient?: string;
   className?: string;
   hover?: boolean;
   glow?: boolean;
@@ -12,7 +16,11 @@ interface CyberCardProps {
 }
 
 export default function CyberCard({ 
-  children, 
+  children,
+  icon,
+  title,
+  description,
+  gradient,
   className = '', 
   hover = true,
   glow = false,
@@ -28,10 +36,29 @@ export default function CyberCard({
       className={`
         glass-panel rounded-xl p-6 transition-all duration-300
         ${glow ? 'glow-pulse' : 'hover:shadow-neon-lg'}
+        ${gradient ? `bg-gradient-to-br ${gradient}` : ''}
         ${className}
       `}
     >
-      {children}
+      {children || (
+        <div className="text-center">
+          {icon && (
+            <div className="mb-4 flex justify-center">
+              {icon}
+            </div>
+          )}
+          {title && (
+            <h3 className="text-xl font-bold text-white mb-2">
+              {title}
+            </h3>
+          )}
+          {description && (
+            <p className="text-gray-300 text-sm">
+              {description}
+            </p>
+          )}
+        </div>
+      )}
     </motion.div>
   );
 }

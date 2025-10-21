@@ -2,7 +2,7 @@
 FROM node:18-alpine
 
 # Install pnpm globally
-RUN npm install -g pnpm
+RUN npm install -g pnpm@9.10.0
 
 # Set working directory
 WORKDIR /app
@@ -23,8 +23,8 @@ COPY . .
 # Build all packages and applications
 RUN pnpm build
 
-# Expose ports for both services
-EXPOSE 3000 3001
+# Expose port for web app (Railway will use this for healthcheck)
+EXPOSE 3000
 
 # Start both services
 WORKDIR /app
