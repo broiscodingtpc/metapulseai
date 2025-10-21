@@ -29,4 +29,4 @@ EXPOSE 3000
 
 # Start web app
 WORKDIR /app/apps/web
-CMD ["node", "start-minimal.js"]
+CMD ["node", "start-railway-final.js"]
