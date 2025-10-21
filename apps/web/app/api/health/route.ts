@@ -12,9 +12,12 @@ export async function GET() {
         web: 'active',
         bot: 'starting' // Bot starts separately, don't block healthcheck
       },
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.NODE_ENV || 'development',
+      version: '1.0.0',
+      ready: true
     });
   } catch (error) {
+    console.error('Health check error:', error);
     return NextResponse.json({
       status: 'unhealthy',
       message: 'Health check failed',
