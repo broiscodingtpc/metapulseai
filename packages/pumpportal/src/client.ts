@@ -42,7 +42,7 @@ export class PumpPortalWS {
       this.subscribe({ method: "subscribeNewToken" });
     });
     
-    this.ws.on("message", (data) => {
+    this.ws.on("message", (data: any) => {
       try {
         const parsed = JSON.parse(data.toString());
         console.log("📡 Received data:", parsed.type || "unknown");
@@ -52,7 +52,7 @@ export class PumpPortalWS {
       }
     });
     
-    this.ws.on("close", (code, reason) => {
+    this.ws.on("close", (code: any, reason: any) => {
       console.log(`🔌 WebSocket closed: ${code} - ${reason}`);
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
         this.reconnectAttempts++;
@@ -63,7 +63,7 @@ export class PumpPortalWS {
       }
     });
     
-    this.ws.on("error", (error) => {
+    this.ws.on("error", (error: any) => {
       console.log("❌ WebSocket error:", error);
     });
   }

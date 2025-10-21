@@ -19,7 +19,7 @@ export function setupBotCommands(bot: TelegramBot) {
   };
 
   // Handle /start command
-  bot.onText(/\/start/, (msg) => {
+  bot.onText(/\/start/, (msg: any) => {
     const chatId = msg.chat.id;
     const welcomeText = `🤖 Welcome to MetaPulse AI Bot — $PULSEAI
 
@@ -31,10 +31,10 @@ Choose an option from the menu below:`;
   });
 
   // Handle menu button clicks
-  bot.onText(/📊 Live Metas/, (msg) => {
+  bot.onText(/📊 Live Metas/, (msg: any) => {
     const chatId = msg.chat.id;
     // Get real data from the bot's memory
-    const metas = Array.from(globalThis.SCORES?.values() || [])
+    const metas = Array.from((globalThis as any).SCORES?.values() || [])
       .reduce((acc: any, score: any) => {
         const existing = acc.find((m: any) => m.label === score.label);
         if (existing) {
@@ -62,12 +62,12 @@ Choose an option from the menu below:`;
     }
   });
 
-  bot.onText(/🔥 Top Tokens/, (msg) => {
+  bot.onText(/🔥 Top Tokens/, (msg: any) => {
     const chatId = msg.chat.id;
     // Get real token data
-    const tokens = Array.from(globalThis.SCORES?.entries() || [])
+    const tokens = Array.from((globalThis as any).SCORES?.entries() || [])
       .map(([mint, score]: [string, any]) => {
-        const info = globalThis.TOK_INFO?.get(mint) || {};
+        const info = (globalThis as any).TOK_INFO?.get(mint) || {};
         return { mint, name: info.name, symbol: info.symbol, totalScore: score.total, label: score.label };
       })
       .sort((a: any, b: any) => b.totalScore - a.totalScore)
@@ -86,16 +86,16 @@ Choose an option from the menu below:`;
     }
   });
 
-  bot.onText(/📈 Market Stats/, (msg) => {
+  bot.onText(/📈 Market Stats/, (msg: any) => {
     const chatId = msg.chat.id;
-    const totalTokens = globalThis.SCORES?.size || 0;
-    const totalTrades = globalThis.ROLLUPS?.allMints().length || 0;
-    const metas = new Set(Array.from(globalThis.SCORES?.values() || []).map((s: any) => s.label)).size;
+    const totalTokens = (globalThis as any).SCORES?.size || 0;
+    const totalTrades = (globalThis as any).ROLLUPS?.allMints().length || 0;
+    const metas = new Set(Array.from((globalThis as any).SCORES?.values() || []).map((s: any) => s.label)).size;
     
     bot.sendMessage(chatId, `📊 Market Statistics\n\n• Total tokens analyzed: ${totalTokens}\n• Active metas: ${metas}\n• Total trades: ${totalTrades}\n• AI confidence: 95%\n• Last update: Just now`, mainMenu);
   });
 
-  bot.onText(/⚙️ Settings/, (msg) => {
+  bot.onText(/⚙️ Settings/, (msg: any) => {
     const chatId = msg.chat.id;
     const settingsText = `⚙️ Bot Settings
 
@@ -108,7 +108,7 @@ Use /help for more commands.`;
     bot.sendMessage(chatId, settingsText, mainMenu);
   });
 
-  bot.onText(/ℹ️ About/, (msg) => {
+  bot.onText(/ℹ️ About/, (msg: any) => {
     const chatId = msg.chat.id;
     const aboutText = `ℹ️ About MetaPulse AI Bot
 
@@ -125,13 +125,13 @@ Phase 4: 🚧 Revenue Dashboard`;
     bot.sendMessage(chatId, aboutText, mainMenu);
   });
 
-  bot.onText(/🌐 Website/, (msg) => {
+  bot.onText(/🌐 Website/, (msg: any) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, "🌐 Visit our website:\n\nhttp://localhost:5174\n\nOr click the link below to access the live metas feed:\nhttp://localhost:5174/metas", mainMenu);
   });
 
   // Handle help command
-  bot.onText(/\/help/, (msg) => {
+  bot.onText(/\/help/, (msg: any) => {
     const chatId = msg.chat.id;
     const helpText = `🆘 Help & Commands
 
@@ -151,7 +151,7 @@ Phase 4: 🚧 Revenue Dashboard`;
   });
 
   // Handle status command
-  bot.onText(/\/status/, (msg) => {
+  bot.onText(/\/status/, (msg: any) => {
     const chatId = msg.chat.id;
     const statusText = `🟢 Bot Status: Online
 ⏰ Uptime: Active
@@ -163,7 +163,7 @@ Phase 4: 🚧 Revenue Dashboard`;
   });
 
   // Handle website command
-  bot.onText(/\/website/, (msg) => {
+  bot.onText(/\/website/, (msg: any) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, "🌐 MetaPulse Website\n\nMain site: http://localhost:5174\nLive metas: http://localhost:5174/metas", mainMenu);
   });

@@ -3,6 +3,8 @@ type Store = Map<string, Roll[]>;
 
 export class Rollups {
   private store: Store = new Map();
+  public totalMarketCap: number = 0;
+  public totalVolume: number = 0;
 
   add(mint: string, data: Roll) {
     const arr = this.store.get(mint) ?? [];
