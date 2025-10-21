@@ -22,12 +22,12 @@ const SCORES = new Map<string, { tech: number; meta: number; total: number; labe
 connectPumpPortal(cfg.apiKey, async (msg: any) => {
   // Handle subscription confirmations and errors
   if (msg.message) {
-    console.log("📢 PumpPortal:", msg.message);
+    console.log(`[${new Date().toISOString()}] 📢 PumpPortal:`, msg.message);
     return;
   }
   
   if (msg.errors) {
-    console.log("⚠️ PumpPortal:", msg.errors);
+    console.error(`[${new Date().toISOString()}] ⚠️ PumpPortal Error:`, msg.errors);
     return;
   }
   
@@ -214,4 +214,45 @@ server.listen(BOT_PORT, () => {
   console.log(`   - https://www.metapulse.tech/api/feed`);
   console.log(`   - https://www.metapulse.tech/api/status`);
   console.log(`   - https://www.metapulse.tech/api/health`);
+});
+
+// Graceful shutdown for Railway
+let isShuttingDown = false;
+
+async function shutdown(signal: string) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  
+  console.log(`\n🛑 ${signal} received, shutting down gracefully...`);
+  
+  try {
+    // Stop accepting new connections
+    server.close(() => {
+      console.log('✅ HTTP server closed');
+    });
+    
+    // Give existing requests 10s to complete
+    setTimeout(() => {
+      console.log('⚠️  Forcing shutdown after timeout');
+      process.exit(0);
+    }, 10000);
+    
+  } catch (error) {
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  shutdown('UNCAUGHT_EXCEPTION');
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ Unhandled Rejection:', reason);
+  shutdown('UNHANDLED_REJECTION');
 });

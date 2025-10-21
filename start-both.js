@@ -4,11 +4,14 @@ console.log("🚀 Starting MetaPulse AI Bot - Both Services...");
 
 // Set environment variables
 process.env.NODE_ENV = 'production';
-const webPort = process.env.PORT || 3000;
+
+// Railway provides PORT env var for main service
+// We'll run web app on Railway's PORT and bot internally
+const webPort = process.env.PORT || process.env.WEB_PORT || 3000;
 const botPort = process.env.BOT_PORT || 3001;
 
-console.log(`📡 Web app will start on port ${webPort}`);
-console.log(`🤖 Bot will start on port ${botPort}`);
+console.log(`📡 Web app will start on port ${webPort} (Railway healthcheck)`);
+console.log(`🤖 Bot will run internally on port ${botPort}`);
 console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
 
 import { spawn } from 'child_process';

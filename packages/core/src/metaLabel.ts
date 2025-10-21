@@ -12,15 +12,24 @@ let rateLimitInfo = {
 export function heuristicMeta(name?: string, symbol?: string, desc?: string): MetaOutput {
   const s = `${name ?? ""} ${symbol ?? ""} ${desc ?? ""}`.toLowerCase();
   const tests: [string, RegExp][] = [
-    ["ai-agents", /\bai|agent|gpt|llm|nexus|neural|morph/i],
-    ["frogs", /\bpepe|frog|kermit/i],
-    ["celeb", /\belon|trump|taylor|mrbeast|celebr/i],
-    ["halloween", /\bspook|ghost|pumpkin|howl|hallow/i],
-    ["gaming", /\bgame|arena|quest|pixel|8bit|esport/i],
-    ["doge-meme", /\bdoge|shiba|bonk|inu/i]
+    ["ai-agents", /\b(ai|agent|gpt|llm|nexus|neural|morph|bot|assistant|chat)/i],
+    ["frogs", /\b(pepe|frog|kermit|toad|amphibian)/i],
+    ["celeb", /\b(elon|trump|taylor|mrbeast|celebr|kardash|bieber)/i],
+    ["halloween", /\b(spook|ghost|pumpkin|howl|hallow|zombie|witch|vampire)/i],
+    ["gaming", /\b(game|arena|quest|pixel|8bit|esport|play|gamer|controller)/i],
+    ["doge-meme", /\b(doge|shiba|bonk|inu|dog|puppy|woof)/i],
+    ["defi", /\b(defi|yield|farm|liquidity|stake|swap|pool|vault)/i],
+    ["meme", /\b(meme|viral|wojak|chad|based|cringe)/i]
   ];
-  for (const [label, rx] of tests) if (rx.test(s)) return { label, metaScore: 65, reason: "heuristic match" };
-  return { label: "unknown", metaScore: 50, reason: "no strong match" };
+  
+  // Check each pattern and return first match
+  for (const [label, rx] of tests) {
+    if (rx.test(s)) {
+      return { label, metaScore: 70, reason: `Heuristic match: detected ${label} keywords` };
+    }
+  }
+  
+  return { label: "unknown", metaScore: 50, reason: "No strong pattern match" };
 }
 
 export async function llmMeta(
