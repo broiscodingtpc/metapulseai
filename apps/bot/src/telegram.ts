@@ -133,19 +133,34 @@ Use /help for more commands.`;
 
   bot.onText(/ℹ️ About/, (msg: any) => {
     const chatId = msg.chat.id;
-    const aboutText = `ℹ️ About MetaPulse AI Bot
+    const aboutText = `ℹ️ **About MetaPulse AI Bot**
 
-🤖 Version: 1.0.0
-🔗 Website: https://metapulse.ai
-📱 Telegram: @metapulseai
+🤖 **Version:** 1.0.0
+🔗 **Website:** https://www.metapulse.tech
+📱 **Telegram:** @MetaPulseAIBot
+🐦 **Twitter:** @METAPULSaibot
 
-MetaPulse AI Bot is an AI-powered trading assistant built on Solana. It detects trending metas and token narratives faster than typical trackers.
+MetaPulse AI Bot is an AI-powered market intelligence system built on Solana. It detects trending metas and token narratives in real-time using advanced AI analysis.
 
+**Features:**
+✅ Real-time token scanning
+✅ AI-powered categorization
+✅ Live market feeds
+✅ Meta trend detection
+
+**Roadmap:**
 Phase 1: ✅ AI Market Scanner
-Phase 2: 🚧 Sniper Module + AI Launcher
-Phase 3: 🚧 BSC and Sui Expansion
-Phase 4: 🚧 Revenue Dashboard`;
-    bot.sendMessage(chatId, aboutText, mainMenu);
+Phase 2: 🚧 Advanced Trading Signals
+Phase 3: 🚧 Multi-Chain Expansion
+Phase 4: 🚧 Revenue Dashboard
+
+💰 **Token:** $PULSEAI
+*Feel the pulse before the market does.*`;
+    
+    bot.sendMessage(chatId, aboutText, { 
+      parse_mode: 'Markdown',
+      reply_markup: mainMenu.reply_markup 
+    });
   });
 
   bot.onText(/🌐 Website/, (msg: any) => {
