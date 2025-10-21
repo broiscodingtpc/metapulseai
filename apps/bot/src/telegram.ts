@@ -66,7 +66,8 @@ Choose an option from the menu below:`;
     const chatId = msg.chat.id;
     // Get real token data
     const tokens = Array.from((globalThis as any).SCORES?.entries() || [])
-      .map(([mint, score]: [string, any]) => {
+      .map((entry: any) => {
+        const [mint, score] = entry as [string, any];
         const info = (globalThis as any).TOK_INFO?.get(mint) || {};
         return { mint, name: info.name, symbol: info.symbol, totalScore: score.total, label: score.label };
       })

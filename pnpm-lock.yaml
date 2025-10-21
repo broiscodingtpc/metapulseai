@@ -95,6 +95,10 @@ importers:
       ws:
         specifier: ^8.18.0
         version: 8.18.3
+    devDependencies:
+      '@types/ws':
+        specifier: ^8.5.10
+        version: 8.18.1
 
 packages:
 
