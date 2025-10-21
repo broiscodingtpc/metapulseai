@@ -1,5 +1,6 @@
 # MetaPulse AI Bot - Railway Optimized
 # Force rebuild - no .env copy needed
+# Last updated: 2025-10-21T00:30:00Z
 FROM node:18-alpine
 
 # Install pnpm globally
