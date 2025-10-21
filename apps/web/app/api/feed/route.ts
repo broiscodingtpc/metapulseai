@@ -10,17 +10,23 @@ export async function GET() {
     
     // If we have real data, use it
     if (TOK_INFO.size > 0 || SCORES.size > 0) {
-      const tokens = Array.from(TOK_INFO.entries()).map(([mint, info]) => ({
-        mint,
-        name: info.name,
-        symbol: info.symbol,
-        description: info.desc
-      }));
+      const tokens = Array.from(TOK_INFO.entries()).map((entry: any) => {
+        const [mint, info] = entry;
+        return {
+          mint,
+          name: info.name,
+          symbol: info.symbol,
+          description: info.desc
+        };
+      });
       
-      const scores = Array.from(SCORES.entries()).map(([mint, score]) => ({
-        mint,
-        ...score
-      }));
+      const scores = Array.from(SCORES.entries()).map((entry: any) => {
+        const [mint, score] = entry;
+        return {
+          mint,
+          ...score
+        };
+      });
       
       // Filter out mainstream tokens
       const mainstreamTokens = ['USDC', 'SOL', 'BONK', 'JUP', 'mSOL', 'USD Coin', 'Solana', 'Bonk', 'Jupiter', 'Marinade Staked SOL'];
