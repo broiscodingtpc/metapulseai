@@ -2,6 +2,15 @@
 
 console.log("🚀 Starting MetaPulse AI Bot - Both Services...");
 
+// ES Module imports
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 // Set environment variables
 process.env.NODE_ENV = 'production';
 
@@ -10,16 +19,15 @@ process.env.NODE_ENV = 'production';
 const webPort = process.env.PORT || process.env.WEB_PORT || 3000;
 const botPort = process.env.BOT_PORT || 3001;
 
+console.log(`📁 Base directory: ${__dirname}`);
 console.log(`📡 Web app will start on port ${webPort} (Railway healthcheck)`);
 console.log(`🤖 Bot will run internally on port ${botPort}`);
 console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
 
-import { spawn } from 'child_process';
-
 // Start web app first for Railway healthcheck
 console.log("🌐 Starting web app...");
 const webProcess = spawn('node', ['start-railway-final.js'], {
-  cwd: process.cwd() + '/apps/web',
+  cwd: join(__dirname, 'apps/web'),
   stdio: 'inherit',
   env: { 
     ...process.env,
@@ -33,7 +41,7 @@ let botProcess;
 setTimeout(() => {
   console.log("🤖 Starting bot...");
   botProcess = spawn('node', ['dist/index.js'], {
-    cwd: process.cwd() + '/apps/bot',
+    cwd: join(__dirname, 'apps/bot'),
     stdio: 'inherit',
     env: { 
       ...process.env,

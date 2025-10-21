@@ -12,6 +12,12 @@ console.log(`📁 Working directory: ${process.cwd()}`);
 
 // Start Next.js directly
 import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const nextProcess = spawn('node', ['node_modules/next/dist/bin/next', 'start', '-p', port], {
   cwd: __dirname,

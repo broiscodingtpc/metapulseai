@@ -16,17 +16,22 @@ export default function HomePage() {
       
       {/* Navigation */}
       <nav className="relative z-10 flex items-center justify-between p-6">
-        <Logo size="lg" />
-        <div className="hidden md:flex space-x-8">
+        <div className="text-2xl font-bold gradient-text">MetaPulse AI</div>
+        <div className="hidden md:flex space-x-8 items-center">
           <Link href="/" className="text-white hover:text-primary-400 transition-colors">Home</Link>
           <Link href="/presale" className="text-white hover:text-primary-400 transition-colors">Presale</Link>
           <Link href="/feed" className="text-white hover:text-primary-400 transition-colors">Live Feed</Link>
           <Link href="/tokens" className="text-white hover:text-primary-400 transition-colors">Scanner</Link>
           <Link href="/metas" className="text-white hover:text-primary-400 transition-colors">Metas</Link>
+          <a href="https://x.com/METAPULSaibot" target="_blank" rel="noopener noreferrer" className="text-white hover:text-primary-400 transition-colors">
+            𝕏 Twitter
+          </a>
         </div>
-        <CyberButton variant="accent" size="sm">
-          Join Telegram
-        </CyberButton>
+        <a href="https://t.me/MetaPulseAIBot" target="_blank" rel="noopener noreferrer">
+          <CyberButton variant="accent" size="sm">
+            Join Telegram
+          </CyberButton>
+        </a>
       </nav>
 
       {/* Hero Section */}
@@ -71,12 +76,16 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            <CyberButton variant="primary" size="lg" className="group">
-              Join Presale <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-            </CyberButton>
-            <CyberButton variant="secondary" size="lg" className="group">
-              Live Feed <TrendingUp className="ml-2 group-hover:scale-110 transition-transform" />
-            </CyberButton>
+            <Link href="/presale">
+              <CyberButton variant="primary" size="lg" className="group">
+                Join Presale <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+              </CyberButton>
+            </Link>
+            <Link href="/feed">
+              <CyberButton variant="secondary" size="lg" className="group">
+                Live Feed <TrendingUp className="ml-2 group-hover:scale-110 transition-transform" />
+              </CyberButton>
+            </Link>
           </motion.div>
         </AnimatedText>
       </section>

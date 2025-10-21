@@ -6,6 +6,8 @@ import { TrendingUp, Users, Activity, BarChart3, Target, Zap } from 'lucide-reac
 import CyberCard from '../components/CyberCard';
 import AnimatedText from '../components/AnimatedText';
 import CyberButton from '../components/CyberButton';
+import PageNav from '../components/PageNav';
+import ParticleBackground from '../components/ParticleBackground';
 
 interface MetaData {
   category: string;
@@ -111,8 +113,10 @@ export default function MetasPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-950 py-8">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-dark-950 relative overflow-hidden">
+      <ParticleBackground />
+      <PageNav />
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="text-center mb-12">
           <AnimatedText>

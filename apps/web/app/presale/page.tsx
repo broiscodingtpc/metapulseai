@@ -2,20 +2,20 @@
 
 import { motion } from 'framer-motion';
 import { ArrowRight, Clock, Users, DollarSign, TrendingUp, Shield, Zap } from 'lucide-react';
-import Logo from '../components/Logo';
 import CyberCard from '../components/CyberCard';
 import AnimatedText from '../components/AnimatedText';
 import CyberButton from '../components/CyberButton';
+import PageNav from '../components/PageNav';
+import ParticleBackground from '../components/ParticleBackground';
 
 export default function PresalePage() {
   return (
-    <div className="min-h-screen bg-dark-950 py-8">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-dark-950 relative overflow-hidden">
+      <ParticleBackground />
+      <PageNav />
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <AnimatedText>
-            <Logo size="xl" className="mx-auto mb-6" />
-          </AnimatedText>
           <AnimatedText delay={0.2}>
             <h1 className="text-5xl font-bold mb-4 gradient-text">
               MetaPulse AI Bot Presale

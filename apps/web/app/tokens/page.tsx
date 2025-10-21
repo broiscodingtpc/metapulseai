@@ -6,6 +6,8 @@ import { Search, Filter, TrendingUp, TrendingDown, Eye, ExternalLink, Star } fro
 import CyberCard from '../components/CyberCard';
 import AnimatedText from '../components/AnimatedText';
 import CyberButton from '../components/CyberButton';
+import PageNav from '../components/PageNav';
+import ParticleBackground from '../components/ParticleBackground';
 
 interface TokenData {
   address: string;
@@ -119,8 +121,10 @@ export default function TokensPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-950 py-8">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-dark-950 relative overflow-hidden">
+      <ParticleBackground />
+      <PageNav />
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="text-center mb-12">
           <AnimatedText>
@@ -163,10 +167,10 @@ export default function TokensPage() {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-white focus:border-primary-500 focus:outline-none"
+                className="px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-white focus:border-primary-500 focus:outline-none [&>option]:bg-dark-900 [&>option]:text-white"
               >
                 {categories.map(category => (
-                  <option key={category} value={category}>
+                  <option key={category} value={category} className="bg-dark-900 text-white">
                     {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
                   </option>
                 ))}
@@ -175,12 +179,12 @@ export default function TokensPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-white focus:border-primary-500 focus:outline-none"
+                className="px-4 py-2 bg-dark-800 border border-slate-700 rounded-lg text-white focus:border-primary-500 focus:outline-none [&>option]:bg-dark-900 [&>option]:text-white"
               >
-                <option value="score">Sort by Score</option>
-                <option value="marketCap">Sort by Market Cap</option>
-                <option value="volume">Sort by Volume</option>
-                <option value="change24h">Sort by 24h Change</option>
+                <option value="score" className="bg-dark-900 text-white">Sort by Score</option>
+                <option value="marketCap" className="bg-dark-900 text-white">Sort by Market Cap</option>
+                <option value="volume" className="bg-dark-900 text-white">Sort by Volume</option>
+                <option value="change24h" className="bg-dark-900 text-white">Sort by 24h Change</option>
               </select>
               
               <CyberButton onClick={fetchData} variant="primary" size="sm">
