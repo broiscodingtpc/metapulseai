@@ -1,6 +1,7 @@
 {
   "name": "metapulse",
   "private": true,
+  "type": "module",
   "workspaces": ["apps/*", "packages/*"],
   "packageManager": "pnpm@9.10.0",
   "scripts": {

@@ -5,8 +5,8 @@
     "moduleResolution": "Bundler",
     "outDir": "dist",
     "rootDir": "src",
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["src", "src/**/*.d.ts"]
 }

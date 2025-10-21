@@ -2,14 +2,15 @@
   "name": "@metapulse/pumpportal",
   "version": "1.0.0",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "scripts": {
-    "build": "echo 'PumpPortal package - no build needed'"
+    "build": "tsc"
   },
   "dependencies": {
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@types/ws": "^8.5.10"
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.0.0"
   }
 }
