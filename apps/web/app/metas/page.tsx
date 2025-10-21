@@ -10,6 +10,9 @@ import CyberButton from '../components/CyberButton';
 import PageNav from '../components/PageNav';
 import ParticleBackground from '../components/ParticleBackground';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 interface MetaData {
   category: string;
   averageScore: number;

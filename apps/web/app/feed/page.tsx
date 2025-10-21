@@ -11,6 +11,9 @@ import PageNav from '../components/PageNav';
 import ParticleBackground from '../components/ParticleBackground';
 import TokenCard from '../components/TokenCard';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 interface TokenData {
   address: string;
   symbol: string;
