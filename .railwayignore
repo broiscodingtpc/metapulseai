@@ -1,0 +1,20 @@
+# Railway ignore file
+# Force rebuild by updating this timestamp
+# Last updated: 2025-01-21T20:00:00Z
+
+# Development files
+.git
+.github
+*.log
+*.md
+test-logo.html
+prompt info.txt
+
+# Local environment
+.env.local
+.env.*.local
+
+# Cache directories
+node_modules/.cache
+.next/cache
+
