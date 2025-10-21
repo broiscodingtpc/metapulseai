@@ -25,7 +25,8 @@ COPY . .
 RUN pnpm build
 
 # Expose port for web app
-EXPOSE 5174
+EXPOSE 3000
 
-# Start web app (which includes bot API endpoints)
-CMD ["pnpm", "start:web"]
+# Start web app
+WORKDIR /app/apps/web
+CMD ["node", "start.js"]
