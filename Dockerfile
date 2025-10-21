@@ -1,5 +1,4 @@
 # MetaPulse AI Bot - Railway Production
-# Fixed infinite postinstall loop issue
 FROM node:18-alpine
 
 # Install pnpm globally
@@ -15,7 +14,7 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/core/package.json ./packages/core/
 COPY packages/pumpportal/package.json ./packages/pumpportal/
 
-# Install dependencies (no postinstall loop)
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
 # Copy source code
@@ -24,9 +23,11 @@ COPY . .
 # Build all packages and applications
 RUN pnpm build
 
+# Set working directory to web app
+WORKDIR /app/apps/web
+
 # Expose port for web app
 EXPOSE 3000
 
 # Start web app
-WORKDIR /app/apps/web
 CMD ["node", "start-railway-final.js"]

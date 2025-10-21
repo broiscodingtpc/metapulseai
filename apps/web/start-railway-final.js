@@ -8,12 +8,21 @@ const port = process.env.PORT || 3000;
 
 console.log(`📡 Starting on port ${port}`);
 console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+console.log(`📁 Working directory: ${process.cwd()}`);
+
+// Check if .next directory exists
+import { existsSync } from 'fs';
+if (!existsSync('.next')) {
+  console.error('❌ .next directory not found! Make sure to run "npm run build" first.');
+  process.exit(1);
+}
 
 // Start Next.js
 import { spawn } from 'child_process';
 
-const nextProcess = spawn('next', ['start', '-p', port], {
+const nextProcess = spawn('npx', ['next', 'start', '-p', port], {
   stdio: 'inherit',
+  cwd: process.cwd(),
   env: { 
     ...process.env,
     NODE_ENV: 'production'
