@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Clock, Target, Zap, ExternalLink } from 'lucide-react';
+import { Clock, ExternalLink, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
 
 interface TokenCardProps {
@@ -16,10 +16,8 @@ interface TokenCardProps {
     category: string;
     reason?: string;
     detectedAt?: string;
-    analyzedAt?: string;
     metadataUri?: string;
     riskLevel?: string;
-    riskScore?: number;
     riskFlags?: string[];
   };
   index?: number;
@@ -35,21 +33,15 @@ export default function TokenCard({ token, index = 0 }: TokenCardProps) {
     let url = '';
     
     if (token.metadataUri) {
-      // Direct image link
       if (token.metadataUri.match(/\.(png|jpg|jpeg|gif|svg|webp)$/i)) {
         url = token.metadataUri.replace('ipfs://', 'https://ipfs.io/ipfs/');
-      } 
-      // IPFS link
-      else if (token.metadataUri.includes('ipfs')) {
+      } else if (token.metadataUri.includes('ipfs')) {
         url = token.metadataUri.replace('ipfs://', 'https://ipfs.io/ipfs/');
-      }
-      // Other metadata services
-      else if (token.metadataUri.startsWith('http')) {
+      } else if (token.metadataUri.startsWith('http')) {
         url = token.metadataUri;
       }
     }
     
-    // Fallback
     if (!url) {
       url = `https://api.dicebear.com/7.x/shapes/svg?seed=${token.address}&backgroundColor=1a1e27`;
     }
@@ -63,15 +55,11 @@ export default function TokenCard({ token, index = 0 }: TokenCardProps) {
       
       const now = new Date().getTime();
       const detected = new Date(token.detectedAt).getTime();
-      const diff = Math.floor((now - detected) / 1000); // seconds
+      const diff = Math.floor((now - detected) / 1000);
       
-      if (diff < 60) {
-        setTimeAgo(`${diff}s ago`);
-      } else if (diff < 3600) {
-        setTimeAgo(`${Math.floor(diff / 60)}m ago`);
-      } else {
-        setTimeAgo(`${Math.floor(diff / 3600)}h ago`);
-      }
+      if (diff < 60) setTimeAgo(`${diff}s`);
+      else if (diff < 3600) setTimeAgo(`${Math.floor(diff / 60)}m`);
+      else setTimeAgo(`${Math.floor(diff / 3600)}h`);
     };
     
     updateTime();
@@ -79,15 +67,15 @@ export default function TokenCard({ token, index = 0 }: TokenCardProps) {
     return () => clearInterval(interval);
   }, [token.detectedAt]);
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'from-green-500 to-emerald-500';
-    if (score >= 60) return 'from-yellow-500 to-amber-500';
-    if (score >= 40) return 'from-orange-500 to-red-500';
-    return 'from-red-500 to-rose-500';
+  const getScoreGradient = (score: number) => {
+    if (score >= 70) return 'from-green-500 to-emerald-600';
+    if (score >= 50) return 'from-yellow-500 to-amber-600';
+    if (score >= 30) return 'from-orange-500 to-red-500';
+    return 'from-red-600 to-rose-700';
   };
 
-  const getCategoryIcon = (category: string) => {
-    const icons: Record<string, string> = {
+  const getCategoryEmoji = (category: string) => {
+    const emojis: Record<string, string> = {
       'ai-agents': '🤖',
       'frogs': '🐸',
       'celeb': '⭐',
@@ -95,33 +83,26 @@ export default function TokenCard({ token, index = 0 }: TokenCardProps) {
       'gaming': '🎮',
       'doge-meme': '🐕',
       'defi': '💰',
-      'meme': '😂'
+      'meme': '😂',
+      'anime': '🎌',
+      'politics': '🏛️',
+      'sports': '⚽',
+      'music': '🎵',
+      'art': '🎨',
+      'tech': '💻',
+      'unknown': '❓'
     };
-    return icons[category] || '❓';
-  };
-
-  const getCategoryColor = (category: string) => {
-    const colors: Record<string, string> = {
-      'ai-agents': 'from-cyan-500/20 to-blue-500/20 border-cyan-500/30',
-      'frogs': 'from-green-500/20 to-emerald-500/20 border-green-500/30',
-      'celeb': 'from-yellow-500/20 to-amber-500/20 border-yellow-500/30',
-      'halloween': 'from-orange-500/20 to-red-500/20 border-orange-500/30',
-      'gaming': 'from-purple-500/20 to-pink-500/20 border-purple-500/30',
-      'doge-meme': 'from-amber-500/20 to-yellow-500/20 border-amber-500/30',
-      'defi': 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30',
-      'meme': 'from-pink-500/20 to-rose-500/20 border-pink-500/30'
-    };
-    return colors[category] || 'from-slate-500/20 to-gray-500/20 border-slate-500/30';
+    return emojis[category] || '📊';
   };
 
   const getRiskColor = () => {
-    if (!token.riskLevel) return 'border-slate-700/50';
+    if (!token.riskLevel) return 'border-slate-700/30';
     switch (token.riskLevel) {
-      case 'LOW': return 'border-green-500/30';
-      case 'MEDIUM': return 'border-yellow-500/30';
-      case 'HIGH': return 'border-orange-500/30';
-      case 'EXTREME': return 'border-red-500/30';
-      default: return 'border-slate-700/50';
+      case 'LOW': return 'border-green-500/40';
+      case 'MEDIUM': return 'border-yellow-500/40';
+      case 'HIGH': return 'border-orange-500/40';
+      case 'EXTREME': return 'border-red-500/40';
+      default: return 'border-slate-700/30';
     }
   };
 
@@ -129,124 +110,117 @@ export default function TokenCard({ token, index = 0 }: TokenCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
-      className={`glass-panel rounded-xl p-5 border-2 ${getRiskColor()} bg-gradient-to-br ${getCategoryColor(token.category)} hover:shadow-neon-lg transition-all duration-300`}
+      transition={{ duration: 0.4, delay: index * 0.03 }}
+      className={`relative bg-dark-900/80 backdrop-blur-sm rounded-2xl border ${getRiskColor()} p-4 sm:p-6 hover:border-primary-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary-500/10 w-full min-w-[280px] sm:min-w-[320px] flex-shrink-0`}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3 flex-1 min-w-0">
-          {/* Token Icon */}
-          <div className="w-14 h-14 rounded-xl overflow-hidden bg-dark-800 flex items-center justify-center flex-shrink-0 shadow-lg">
-            {iconUrl && !imageError ? (
-              <Image 
-                src={iconUrl} 
-                alt={token.symbol} 
-                width={56} 
-                height={56}
-                className="w-full h-full object-cover"
-                unoptimized
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <span className="text-3xl">{getCategoryIcon(token.category)}</span>
-            )}
-          </div>
-          
-          {/* Token Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-white font-bold text-xl truncate">{token.symbol}</h3>
-              <div className="flex items-center space-x-1 text-slate-400 text-xs flex-shrink-0">
-                <Clock className="w-3 h-3" />
-                <span>{timeAgo}</span>
-              </div>
-            </div>
-            <p className="text-slate-400 text-sm truncate">{token.name}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs">{getCategoryIcon(token.category)}</span>
-              <span className="text-slate-300 text-xs font-medium capitalize">{token.category}</span>
-            </div>
-          </div>
+      {/* Score Badge - Top Right */}
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
+        <div className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r ${getScoreGradient(token.score)} text-white font-bold text-base sm:text-lg shadow-lg`}>
+          {token.score}
         </div>
-        
-        {/* Score Badge */}
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <div className={`px-4 py-2 rounded-lg bg-gradient-to-r ${getScoreColor(token.score)} text-white font-bold text-lg shadow-lg`}>
-            {token.score}
-          </div>
-          {token.riskLevel && (
-            <span className="text-xs font-bold">
-              {token.riskLevel === 'LOW' ? '🟢' :
-               token.riskLevel === 'MEDIUM' ? '🟡' :
-               token.riskLevel === 'HIGH' ? '🟠' : '🔴'}
-            </span>
+      </div>
+
+      {/* Token Header */}
+      <div className="flex items-start space-x-3 sm:space-x-4 mb-4 sm:mb-6">
+        {/* Icon */}
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-dark-800 flex items-center justify-center flex-shrink-0 shadow-xl ring-2 ring-slate-700/30">
+          {iconUrl && !imageError ? (
+            <Image 
+              src={iconUrl} 
+              alt={token.symbol} 
+              width={64} 
+              height={64}
+              className="w-full h-full object-cover"
+              unoptimized
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <span className="text-3xl sm:text-4xl">{getCategoryEmoji(token.category)}</span>
           )}
         </div>
-      </div>
-
-      {/* Scores Detail */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-dark-800/70 rounded-lg p-3 border border-cyan-500/20">
-          <p className="text-slate-400 text-xs mb-1">Tech Score</p>
-          <p className="text-cyan-400 font-bold text-lg">{token.techScore || 0}</p>
-        </div>
-        <div className="bg-dark-800/70 rounded-lg p-3 border border-purple-500/20">
-          <p className="text-slate-400 text-xs mb-1">AI Score</p>
-          <p className="text-purple-400 font-bold text-lg">{token.metaScore || 0}</p>
-        </div>
-      </div>
-
-      {/* AI Reason */}
-      {token.reason && (
-        <div className="bg-dark-800/50 rounded-lg p-3 mb-4 border border-slate-700/30">
-          <p className="text-slate-300 text-sm leading-relaxed line-clamp-3">{token.reason}</p>
-        </div>
-      )}
-
-      {/* Risk Flags */}
-      {token.riskFlags && token.riskFlags.length > 0 && (
-        <div className={`rounded-lg p-3 mb-4 ${
-          token.riskLevel === 'LOW' ? 'bg-green-500/10 border border-green-500/20' :
-          token.riskLevel === 'MEDIUM' ? 'bg-yellow-500/10 border border-yellow-500/20' :
-          token.riskLevel === 'HIGH' ? 'bg-orange-500/10 border border-orange-500/20' :
-          'bg-red-500/10 border border-red-500/20'
-        }`}>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-semibold text-slate-300">⚠️ Risk Alert</span>
+        
+        {/* Token Info */}
+        <div className="flex-1 min-w-0 pr-14 sm:pr-16">
+          <h3 className="text-white font-bold text-lg sm:text-xl mb-1 truncate">{token.symbol}</h3>
+          <p className="text-slate-400 text-xs sm:text-sm leading-tight line-clamp-2">{token.name}</p>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <span className="text-base sm:text-lg">{getCategoryEmoji(token.category)}</span>
+            <span className="text-slate-300 text-xs sm:text-sm font-medium capitalize truncate max-w-[100px]">{token.category}</span>
+            {timeAgo && (
+              <>
+                <span className="text-slate-600">•</span>
+                <div className="flex items-center gap-1 text-slate-400 text-xs">
+                  <Clock className="w-3 h-3" />
+                  <span>{timeAgo}</span>
+                </div>
+              </>
+            )}
           </div>
-          <p className="text-xs text-slate-300">{token.riskFlags.join(' • ')}</p>
+        </div>
+      </div>
+
+      {/* Scores */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-2 sm:p-3 text-center">
+          <p className="text-cyan-300 text-xs font-medium mb-1">Tech</p>
+          <p className="text-cyan-400 font-bold text-xl sm:text-2xl">{token.techScore || 0}</p>
+        </div>
+        <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-2 sm:p-3 text-center">
+          <p className="text-purple-300 text-xs font-medium mb-1">AI</p>
+          <p className="text-purple-400 font-bold text-xl sm:text-2xl">{token.metaScore || 0}</p>
+        </div>
+      </div>
+
+      {/* AI Analysis */}
+      {token.reason && (
+        <div className="bg-dark-800/60 border border-slate-700/40 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
+          <p className="text-slate-300 text-xs sm:text-sm leading-relaxed line-clamp-3">{token.reason}</p>
         </div>
       )}
 
-      {/* Actions */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Risk Alerts */}
+      {token.riskFlags && token.riskFlags.length > 0 && (
+        <div className={`rounded-xl p-2 sm:p-3 mb-3 sm:mb-4 flex items-start gap-2 ${
+          token.riskLevel === 'EXTREME' || token.riskLevel === 'HIGH' 
+            ? 'bg-red-500/10 border border-red-500/30' 
+            : 'bg-yellow-500/10 border border-yellow-500/30'
+        }`}>
+          <AlertTriangle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
+            token.riskLevel === 'EXTREME' || token.riskLevel === 'HIGH' 
+              ? 'text-red-400' 
+              : 'text-yellow-400'
+          }`} />
+          <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">{token.riskFlags[0]}</p>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <a
           href={`https://pump.fun/${token.address}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-primary-500/20 to-primary-600/20 hover:from-primary-500/30 hover:to-primary-600/30 border border-primary-500/30 text-primary-300 rounded-lg transition-all duration-200 text-sm font-semibold"
+          className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-3 bg-gradient-to-r from-primary-500/20 to-primary-600/20 hover:from-primary-500/30 hover:to-primary-600/30 border border-primary-500/40 text-primary-300 hover:text-primary-200 rounded-xl transition-all duration-200 font-semibold text-xs sm:text-sm"
         >
-          <ExternalLink className="w-4 h-4" />
+          <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           Trade
         </a>
         <a
           href={`https://solscan.io/token/${token.address}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-secondary-500/20 to-secondary-600/20 hover:from-secondary-500/30 hover:to-secondary-600/30 border border-secondary-500/30 text-secondary-300 rounded-lg transition-all duration-200 text-sm font-semibold"
+          className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-3 bg-gradient-to-r from-slate-600/20 to-slate-700/20 hover:from-slate-600/30 hover:to-slate-700/30 border border-slate-600/40 text-slate-300 hover:text-slate-200 rounded-xl transition-all duration-200 font-semibold text-xs sm:text-sm"
         >
-          <Target className="w-4 h-4" />
-          Scan
+          View
         </a>
       </div>
 
-      {/* Address (shortened) */}
-      <div className="mt-4 pt-3 border-t border-slate-700/30">
-        <p className="text-slate-500 text-xs font-mono text-center truncate">
-          {token.address.slice(0, 6)}...{token.address.slice(-6)}
+      {/* Address Footer */}
+      <div className="mt-3 pt-3 sm:mt-4 sm:pt-4 border-t border-slate-700/30">
+        <p className="text-slate-600 text-xs font-mono text-center truncate">
+          {token.address.slice(0, 4)}...{token.address.slice(-4)}
         </p>
       </div>
     </motion.div>
   );
 }
-

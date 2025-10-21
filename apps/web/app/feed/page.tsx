@@ -195,34 +195,43 @@ export default function FeedPage() {
           </AnimatedText>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* AI Activity */}
-          <AnimatedText delay={0.6}>
-            <AIActivity />
-          </AnimatedText>
-
-          {/* New Tokens */}
-          <AnimatedText delay={0.7}>
-            <CyberCard glow>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">New Tokens</h2>
-                <span className="text-slate-400 text-sm">
-                  {data?.newTokens?.length || 0} tokens
-                </span>
-              </div>
+        {/* New Tokens - Full Width Horizontal Scroll */}
+        <AnimatedText delay={0.6}>
+          <CyberCard glow>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">New Tokens</h2>
+              <span className="text-slate-400 text-sm">
+                {data?.newTokens?.length || 0} tokens
+              </span>
+            </div>
+            
+            <div className="relative">
+              {/* Gradient fade on edges */}
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-dark-900 to-transparent z-10 pointer-events-none"></div>
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-dark-900 to-transparent z-10 pointer-events-none"></div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto cyber-scrollbar pr-2">
+              {/* Horizontal scroll container */}
+              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory horizontal-scroll -mx-2 px-2">
                 {data?.newTokens?.map((token, index) => (
-                  <TokenCard key={token.address} token={token} index={index} />
+                  <div key={token.address} className="snap-start">
+                    <TokenCard token={token} index={index} />
+                  </div>
                 ))}
                 {(!data?.newTokens || data.newTokens.length === 0) && (
-                  <div className="col-span-full text-center py-12">
+                  <div className="w-full text-center py-12">
                     <p className="text-slate-400 text-lg">Waiting for new tokens...</p>
                     <p className="text-slate-500 text-sm mt-2">Bot is scanning Pump.fun</p>
                   </div>
                 )}
               </div>
-            </CyberCard>
+            </div>
+          </CyberCard>
+        </AnimatedText>
+
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* AI Activity */}
+          <AnimatedText delay={0.7}>
+            <AIActivity />
           </AnimatedText>
 
           {/* Top Metas */}
