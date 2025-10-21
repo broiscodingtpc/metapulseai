@@ -194,7 +194,7 @@ const server = http.createServer((req, res) => {
   res.end('Not Found');
 });
 
-const PORT = process.env.BOT_PORT || 3000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🤖 Bot HTTP server running on port ${PORT}`);
   console.log(`📊 API endpoints:`);
