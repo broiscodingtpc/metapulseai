@@ -8,6 +8,7 @@ import AnimatedText from '../components/AnimatedText';
 import CyberButton from '../components/CyberButton';
 import PageNav from '../components/PageNav';
 import ParticleBackground from '../components/ParticleBackground';
+import TokenCard from '../components/TokenCard';
 
 interface TokenData {
   address: string;
@@ -237,69 +238,14 @@ export default function TokensPage() {
         {/* Token Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTokens.map((token, index) => (
-            <AnimatedText key={token.address} delay={index * 0.1}>
-              <CyberCard 
-                hover 
-                glow
-                className="cursor-pointer"
-                onClick={() => setSelectedToken(token)}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold">
-                        {token.symbol.charAt(0)}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="text-white font-bold">{token.symbol}</h3>
-                      <p className="text-slate-400 text-sm">{token.name}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`font-bold ${getScoreColor(token.score)}`}>
-                      {token.score.toFixed(1)}
-                    </div>
-                    <div className="text-slate-400 text-xs">
-                      {getScoreLabel(token.score)}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Price:</span>
-                    <span className="text-white">${formatPrice(token.price)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Market Cap:</span>
-                    <span className="text-white">${formatNumber(token.marketCap)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Volume:</span>
-                    <span className="text-white">${formatNumber(token.volume)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">24h Change:</span>
-                    <span className={`font-semibold ${getChangeColor(token.change24h)}`}>
-                      {token.change24h >= 0 ? '+' : ''}{token.change24h.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Category:</span>
-                    <span className="text-primary-400 capitalize">{token.category}</span>
-                  </div>
-                </div>
-                
-                <div className="mt-4 pt-4 border-t border-slate-700">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 text-sm">Liquidity</span>
-                    <span className="text-white text-sm">${formatNumber(token.liquidity)}</span>
-                  </div>
-                </div>
-              </CyberCard>
-            </AnimatedText>
+            <TokenCard key={token.address} token={token} index={index} />
           ))}
+          {filteredTokens.length === 0 && (
+            <div className="col-span-full text-center py-12">
+              <p className="text-slate-400 text-lg">No tokens found</p>
+              <p className="text-slate-500 text-sm mt-2">Try adjusting your filters</p>
+            </div>
+          )}
         </div>
 
         {/* Promote Your Project */}

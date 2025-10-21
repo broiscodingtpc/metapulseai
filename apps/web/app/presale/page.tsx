@@ -28,52 +28,25 @@ export default function PresalePage() {
           </AnimatedText>
         </div>
 
-        {/* Presale Stats */}
-        <div className="grid md:grid-cols-4 gap-6 mb-12">
+        {/* Presale Info */}
+        <div className="mb-12">
           <AnimatedText delay={0.2}>
             <CyberCard>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <DollarSign className="w-6 h-6 text-primary-400" />
+              <div className="text-center py-8">
+                <h2 className="text-3xl font-bold gradient-text mb-4">Presale Coming Soon</h2>
+                <p className="text-slate-300 text-lg mb-6">Join our community to get early access</p>
+                <div className="flex justify-center gap-4">
+                  <a href="https://t.me/MetaPulseAIBot" target="_blank" rel="noopener noreferrer">
+                    <CyberButton variant="primary" size="lg">
+                      Join Telegram
+                    </CyberButton>
+                  </a>
+                  <a href="https://x.com/METAPULSaibot" target="_blank" rel="noopener noreferrer">
+                    <CyberButton variant="secondary" size="lg">
+                      Follow on 𝕏
+                    </CyberButton>
+                  </a>
                 </div>
-                <p className="text-slate-400 text-sm">Presale Price</p>
-                <p className="text-2xl font-bold text-white">$0.001</p>
-              </div>
-            </CyberCard>
-          </AnimatedText>
-
-          <AnimatedText delay={0.3}>
-            <CyberCard>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-secondary-500/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Clock className="w-6 h-6 text-secondary-400" />
-                </div>
-                <p className="text-slate-400 text-sm">Time Remaining</p>
-                <p className="text-2xl font-bold text-white">7 Days</p>
-              </div>
-            </CyberCard>
-          </AnimatedText>
-
-          <AnimatedText delay={0.4}>
-            <CyberCard>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-accent-500/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-6 h-6 text-accent-400" />
-                </div>
-                <p className="text-slate-400 text-sm">Participants</p>
-                <p className="text-2xl font-bold text-white">1,247</p>
-              </div>
-            </CyberCard>
-          </AnimatedText>
-
-          <AnimatedText delay={0.5}>
-            <CyberCard>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <TrendingUp className="w-6 h-6 text-primary-400" />
-                </div>
-                <p className="text-slate-400 text-sm">Raised</p>
-                <p className="text-2xl font-bold text-white">$45,230</p>
               </div>
             </CyberCard>
           </AnimatedText>

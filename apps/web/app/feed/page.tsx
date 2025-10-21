@@ -9,6 +9,7 @@ import CyberButton from '../components/CyberButton';
 import AIActivity from '../components/AIActivity';
 import PageNav from '../components/PageNav';
 import ParticleBackground from '../components/ParticleBackground';
+import TokenCard from '../components/TokenCard';
 
 interface TokenData {
   address: string;
@@ -210,39 +211,16 @@ export default function FeedPage() {
                 </span>
               </div>
               
-              <div className="space-y-4 max-h-96 overflow-y-auto cyber-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto cyber-scrollbar pr-2">
                 {data?.newTokens?.map((token, index) => (
-                  <motion.div
-                    key={token.address}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-center justify-between p-4 bg-dark-800/50 rounded-lg border border-slate-700/50 hover:border-primary-500/50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
-                          <span className="text-white font-bold text-sm">
-                            {token.symbol.charAt(0)}
-                          </span>
-                        </div>
-                        <div>
-                          <h3 className="text-white font-semibold">{token.symbol}</h3>
-                          <p className="text-slate-400 text-sm">{token.name}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="text-right">
-                      <div className={`font-bold ${getScoreColor(token.score)}`}>
-                        {token.score.toFixed(1)}
-                      </div>
-                      <div className="text-slate-400 text-xs">
-                        {getScoreLabel(token.score)}
-                      </div>
-                    </div>
-                  </motion.div>
+                  <TokenCard key={token.address} token={token} index={index} />
                 ))}
+                {(!data?.newTokens || data.newTokens.length === 0) && (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-slate-400 text-lg">Waiting for new tokens...</p>
+                    <p className="text-slate-500 text-sm mt-2">Bot is scanning Pump.fun</p>
+                  </div>
+                )}
               </div>
             </CyberCard>
           </AnimatedText>

@@ -150,7 +150,29 @@ Phase 4: 🚧 Revenue Dashboard`;
 
   bot.onText(/🌐 Website/, (msg: any) => {
     const chatId = msg.chat.id;
-    bot.sendMessage(chatId, "🌐 Visit our website:\n\nhttps://www.metapulse.tech\n\nOr click the link below to access the live metas feed:\nhttps://www.metapulse.tech/metas", mainMenu);
+    const websiteText = `🌐 **MetaPulse AI - Links**
+
+🏠 Website: https://www.metapulse.tech
+
+📊 **Live Data:**
+• Live Feed: https://www.metapulse.tech/feed
+• Token Scanner: https://www.metapulse.tech/tokens  
+• Meta Analysis: https://www.metapulse.tech/metas
+
+💎 **Presale:**
+• Join Presale: https://www.metapulse.tech/presale
+
+🐦 **Social Media:**
+• Twitter/𝕏: https://x.com/METAPULSaibot
+• Telegram Bot: @MetaPulseAIBot
+
+💰 **Token:** $PULSEAI
+*Feel the pulse before the market does.*`;
+
+    bot.sendMessage(chatId, websiteText, { 
+      parse_mode: 'Markdown',
+      reply_markup: mainMenu.reply_markup 
+    });
   });
 
   // Handle help command

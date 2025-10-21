@@ -11,8 +11,21 @@ import path from "node:path";
 import http from "node:http";
 
 const rollups = new Rollups();
-const TOK_INFO = new Map<string, { name?: string; symbol?: string; desc?: string }>();
-const SCORES = new Map<string, { tech: number; meta: number; total: number; label: string }>();
+const TOK_INFO = new Map<string, { 
+  name?: string; 
+  symbol?: string; 
+  desc?: string;
+  analyzedAt?: string;
+  detectedAt?: string;
+}>();
+const SCORES = new Map<string, { 
+  tech: number; 
+  meta: number; 
+  total: number; 
+  label: string;
+  metaScore?: number;
+  reason?: string;
+}>();
 
 // Make variables globally accessible for Telegram bot
 (globalThis as any).ROLLUPS = rollups;
@@ -38,7 +51,12 @@ connectPumpPortal(cfg.apiKey, async (msg: any) => {
   if (msg.txType === "create" && msg.mint) {
     const m = msg;
     console.log("🆕 New token detected:", m.name, m.symbol, m.mint);
-    TOK_INFO.set(m.mint, { name: m.name, symbol: m.symbol, desc: m.uri });
+    TOK_INFO.set(m.mint, { 
+      name: m.name, 
+      symbol: m.symbol, 
+      desc: m.uri,
+      detectedAt: new Date().toISOString()
+    });
     
     // Create stats based on the token creation data
     const initialBuy = m.initialBuy || 0;
@@ -63,7 +81,23 @@ connectPumpPortal(cfg.apiKey, async (msg: any) => {
 
     const meta = await labelMeta({ name: m.name, symbol: m.symbol, desc: m.uri, stats: mockStats }, cfg.llmKey, cfg.llmModel);
     const total = totalScore(tech.score, meta.metaScore);
-    SCORES.set(m.mint, { tech: tech.score, meta: meta.metaScore, total, label: meta.label });
+    SCORES.set(m.mint, { 
+      tech: tech.score, 
+      meta: meta.metaScore, 
+      total, 
+      label: meta.label,
+      metaScore: meta.metaScore,
+      reason: meta.reason
+    });
+    
+    // Update analyzedAt timestamp
+    const tokenInfo = TOK_INFO.get(m.mint);
+    if (tokenInfo) {
+      TOK_INFO.set(m.mint, { 
+        ...tokenInfo, 
+        analyzedAt: new Date().toISOString() 
+      });
+    }
     
     console.log("📊 Token scored:", m.name || "Unknown", "Score:", total, "Meta:", meta.label);
   }
@@ -84,7 +118,23 @@ connectPumpPortal(cfg.apiKey, async (msg: any) => {
 
     const meta = await labelMeta({ name: info.name, symbol: info.symbol, desc: info.desc, stats: r }, cfg.llmKey, cfg.llmModel);
     const total = totalScore(tech.score, meta.metaScore);
-    SCORES.set(t.mint, { tech: tech.score, meta: meta.metaScore, total, label: meta.label });
+    SCORES.set(t.mint, { 
+      tech: tech.score, 
+      meta: meta.metaScore, 
+      total, 
+      label: meta.label,
+      metaScore: meta.metaScore,
+      reason: meta.reason
+    });
+    
+    // Update analyzedAt timestamp
+    const tokenInfo = TOK_INFO.get(t.mint);
+    if (tokenInfo) {
+      TOK_INFO.set(t.mint, { 
+        ...tokenInfo, 
+        analyzedAt: new Date().toISOString() 
+      });
+    }
     
     console.log("📊 Token scored:", info.name || "Unknown", "Score:", total, "Meta:", meta.label);
   }
@@ -150,22 +200,37 @@ const server = http.createServer((req, res) => {
   
   if (req.url === '/feed.json') {
     const data = {
-      tokens: Array.from(TOK_INFO.entries()).map(([address, info]) => ({
-        address,
-        ...info,
-        score: SCORES.get(address)?.total || 0,
-        category: SCORES.get(address)?.label || 'unknown'
-      })),
+      tokens: Array.from(TOK_INFO.entries()).map(([address, info]) => {
+        const scoreData = SCORES.get(address);
+        return {
+          address,
+          ...info,
+          score: scoreData?.total || 0,
+          techScore: scoreData?.tech || 0,
+          metaScore: scoreData?.metaScore || 0,
+          category: scoreData?.label || 'unknown',
+          reason: scoreData?.reason || '',
+          detectedAt: info.detectedAt,
+          analyzedAt: info.analyzedAt
+        };
+      }).sort((a, b) => {
+        // Sort by most recent first
+        const timeA = new Date(a.detectedAt || 0).getTime();
+        const timeB = new Date(b.detectedAt || 0).getTime();
+        return timeB - timeA;
+      }).slice(0, 100), // Last 100 tokens
       metas: Array.from(SCORES.values()).reduce((acc, score) => {
         const category = score.label;
         if (!acc[category]) {
-          acc[category] = { count: 0, avgScore: 0, totalScore: 0 };
+          acc[category] = { count: 0, avgScore: 0, totalScore: 0, avgMetaScore: 0, totalMetaScore: 0 };
         }
         acc[category].count++;
         acc[category].totalScore += score.total;
         acc[category].avgScore = acc[category].totalScore / acc[category].count;
+        acc[category].totalMetaScore += (score.metaScore || 0);
+        acc[category].avgMetaScore = acc[category].totalMetaScore / acc[category].count;
         return acc;
-      }, {} as Record<string, { count: number; avgScore: number; totalScore: number }>),
+      }, {} as Record<string, { count: number; avgScore: number; totalScore: number; avgMetaScore: number; totalMetaScore: number }>),
       generatedAt: new Date().toISOString(),
       stats: {
         totalTokens: TOK_INFO.size,
