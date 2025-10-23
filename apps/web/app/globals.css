@@ -394,3 +394,26 @@
 .gradual-blur {
   animation: gradualBlur 4s ease-in-out infinite;
 }
+
+/* Circular Text */
+.circular-text {
+  margin: 0 auto;
+  border-radius: 50%;
+  position: relative;
+  font-weight: 900;
+  color: #00e5ff;
+  text-align: center;
+  cursor: pointer;
+  transform-origin: 50% 50%;
+  -webkit-transform-origin: 50% 50%;
+}
+
+.circular-text span {
+  position: absolute;
+  display: inline-block;
+  left: 50%;
+  top: 50%;
+  font-size: 16px;
+  transition: all 0.5s cubic-bezier(0, 0, 0, 1);
+  transform-origin: center;
+}
