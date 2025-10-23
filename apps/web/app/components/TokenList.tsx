@@ -1,11 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, ExternalLink, Shield, Zap, Target, Activity, Clock } from 'lucide-react';
+import { TrendingUp, TrendingDown, ExternalLink, Clock, Zap, Activity, Target, Shield } from 'lucide-react';
 import Image from 'next/image';
-import ScoreBadge from './ScoreBadge';
-import TokenAlert from './TokenAlert';
 
 interface TokenListProps {
   token: {
@@ -148,153 +145,99 @@ export default function TokenList({ token, index = 0 }: TokenListProps) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
-      className="group bg-gradient-to-r from-slate-900/50 to-slate-950/50 backdrop-blur-sm border border-slate-800/50 hover:border-slate-700/50 rounded-lg p-4 hover:bg-slate-900/60 transition-all duration-200"
-    >
-      <div className="flex items-center justify-between">
-        {/* Left Section - Token Info */}
-        <div className="flex items-center space-x-4 flex-1 min-w-0">
-          {/* Rank */}
-          <div className="text-slate-500 text-sm font-mono w-8 text-center">
-            #{index + 1}
-          </div>
-
-          {/* Icon */}
-          <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-800 flex items-center justify-center flex-shrink-0">
-            {iconUrl && !imageError ? (
-              <Image 
-                src={iconUrl} 
-                alt={token.symbol} 
-                width={40} 
-                height={40}
-                className="w-full h-full object-cover"
-                unoptimized
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <div className={`${getCategoryColor(token.category)}`}>
-                {getCategoryIcon(token.category)}
-              </div>
-            )}
-          </div>
-
-          {/* Token Details */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-white font-semibold text-lg truncate">{token.symbol}</h3>
-              <div className={`flex items-center gap-1 px-2 py-1 rounded-full bg-slate-800/50 ${getCategoryColor(token.category)}`}>
-                {getCategoryIcon(token.category)}
-                <span className="text-xs font-medium capitalize">{token.category}</span>
-              </div>
-            </div>
-            <p className="text-slate-400 text-sm truncate">{token.name}</p>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              {/* Visual Alerts */}
-              {token.isNew && <TokenAlert type="new" size="sm" />}
-              {token.isTrending && <TokenAlert type="trending" size="sm" />}
-              {token.isWatchlist && <TokenAlert type="watchlist" size="sm" />}
-              {token.riskLevel === 'HIGH' && <TokenAlert type="warning" size="sm" />}
-              {token.score >= 50 && token.riskLevel !== 'HIGH' && <TokenAlert type="potential" size="sm" />}
-              
-              {timeAgo && (
-                <div className="flex items-center gap-1 text-slate-500 text-xs">
-                  <Clock className="w-3 h-3" />
-                  <span>{timeAgo}</span>
-                </div>
-              )}
-              <div className="text-xs text-slate-600 font-mono">
-                {token.address.slice(0, 6)}...{token.address.slice(-4)}
-              </div>
-            </div>
-          </div>
+    <div className="flex items-center justify-between p-3 bg-slate-900/30 border-b border-slate-800/30 hover:bg-slate-900/50 transition-colors">
+      {/* Left - Token Info */}
+      <div className="flex items-center space-x-3 flex-1 min-w-0">
+        <div className="text-slate-500 text-sm w-6">#{index + 1}</div>
+        
+        <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center flex-shrink-0">
+          {iconUrl && !imageError ? (
+            <Image 
+              src={iconUrl} 
+              alt={token.symbol} 
+              width={32} 
+              height={32}
+              className="w-full h-full object-cover rounded"
+              unoptimized
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="text-slate-400 text-xs font-bold">{token.symbol[0]}</div>
+          )}
         </div>
 
-        {/* Center Section - Scores */}
-        <div className="flex items-center space-x-4">
-          <div className="text-center">
-            <div className="text-xs text-slate-500 mb-1">Tech</div>
-            <div className={`font-bold text-sm ${getScoreColor(token.techScore || 0)}`}>
-              {token.techScore || 0}
-            </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="text-white font-semibold text-sm truncate">{token.symbol}</h3>
+            <span className="text-xs text-slate-500 capitalize">{token.category}</span>
           </div>
-          <div className="text-center">
-            <div className="text-xs text-slate-500 mb-1">AI</div>
-            <div className={`font-bold text-sm ${getScoreColor(token.metaScore || 0)}`}>
-              {token.metaScore || 0}
-            </div>
-          </div>
-          <div className="text-center">
-            <ScoreBadge score={token.score} riskLevel={token.riskLevel} size="sm" />
-          </div>
-        </div>
-
-        {/* Right Section - Market Data & Actions */}
-        <div className="flex items-center space-x-6">
-          {/* Market Data */}
-          <div className="text-right">
-            {token.price && (
-              <div className="text-white font-semibold">
-                {formatPrice(token.price)}
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            {timeAgo && (
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>{timeAgo}</span>
               </div>
             )}
-            {token.change24h !== undefined && (
-              <div className={`text-sm flex items-center gap-1 ${getChangeColor(token.change24h)}`}>
-                {token.change24h > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                {Math.abs(token.change24h).toFixed(2)}%
-              </div>
-            )}
-            {token.marketCap && (
-              <div className="text-slate-400 text-xs">
-                ${formatNumber(token.marketCap)}
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center space-x-2">
-            <a
-              href={`https://pump.fun/${token.address}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 px-3 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 hover:text-cyan-200 rounded-lg transition-all duration-200 text-sm font-medium"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Trade
-            </a>
-            <a
-              href={`https://solscan.io/token/${token.address}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 px-3 py-2 bg-slate-600/20 hover:bg-slate-600/30 border border-slate-600/40 text-slate-300 hover:text-slate-200 rounded-lg transition-all duration-200 text-sm font-medium"
-            >
-              <Shield className="w-3 h-3" />
-              View
-            </a>
+            <span className="font-mono">{token.address.slice(0, 4)}...{token.address.slice(-4)}</span>
           </div>
         </div>
       </div>
 
-      {/* Risk Alert */}
-      {token.riskFlags && token.riskFlags.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-slate-800/50">
-          <div className={`flex items-center gap-2 text-xs ${
-            token.riskLevel === 'EXTREME' || token.riskLevel === 'HIGH' 
-              ? 'text-red-400' 
-              : 'text-yellow-400'
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${
-              token.riskLevel === 'EXTREME' || token.riskLevel === 'HIGH' 
-                ? 'bg-red-400' 
-                : 'bg-yellow-400'
-            }`}></div>
-            <span className="font-medium">Risk Alert:</span>
-            <span>{token.riskFlags[0]}</span>
+      {/* Center - Scores */}
+      <div className="flex items-center space-x-4 text-center">
+        <div>
+          <div className="text-xs text-slate-500">Tech</div>
+          <div className={`font-bold text-sm ${getScoreColor(token.techScore || 0)}`}>
+            {token.techScore || 0}
           </div>
         </div>
-      )}
-    </motion.div>
+        <div>
+          <div className="text-xs text-slate-500">AI</div>
+          <div className={`font-bold text-sm ${getScoreColor(token.metaScore || 0)}`}>
+            {token.metaScore || 0}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-slate-500">Score</div>
+          <div className={`font-bold text-sm ${getScoreColor(token.score)}`}>
+            {token.score}
+          </div>
+        </div>
+      </div>
+
+      {/* Right - Market & Actions */}
+      <div className="flex items-center space-x-4">
+        {token.price && (
+          <div className="text-right">
+            <div className="text-white font-semibold text-sm">{formatPrice(token.price)}</div>
+            {token.change24h !== undefined && (
+              <div className={`text-xs flex items-center gap-1 ${getChangeColor(token.change24h)}`}>
+                {token.change24h > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {Math.abs(token.change24h).toFixed(1)}%
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center space-x-1">
+          <a
+            href={`https://pump.fun/${token.address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded text-xs hover:bg-cyan-500/30 transition-colors"
+          >
+            Trade
+          </a>
+          <a
+            href={`https://solscan.io/token/${token.address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2 py-1 bg-slate-600/20 text-slate-300 rounded text-xs hover:bg-slate-600/30 transition-colors"
+          >
+            View
+          </a>
+        </div>
+      </div>
+    </div>
   );
 }

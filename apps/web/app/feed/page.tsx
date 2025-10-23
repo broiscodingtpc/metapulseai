@@ -2,33 +2,11 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
-import dynamicImport from 'next/dynamic';
-import { motion } from 'framer-motion';
-import { TrendingUp, Activity, DollarSign, BarChart3, RefreshCw, Database, Zap, Target } from 'lucide-react';
-import AnimatedText from '../components/AnimatedText';
-import CyberButton from '../components/CyberButton';
+import { Activity, DollarSign, BarChart3, RefreshCw, Database, Target } from 'lucide-react';
 import PageNav from '../components/PageNav';
 import TokenList from '../components/TokenList';
-import TokenFilters from '../components/TokenFilters';
-import ElectricBorder from '../components/ElectricBorder';
-import MetallicPaint from '../components/MetallicPaint';
-import LiquidEther from '../components/LiquidEther';
-import Noise from '../components/Noise';
 import { fetcher } from '../lib/swr-config';
 
-// Dynamic imports
-const OrbBackground = dynamicImport(() => import('../components/OrbBackground'), {
-  ssr: false,
-  loading: () => <div className="fixed inset-0 bg-gradient-to-b from-[#05060a] to-[#0a0b0f]" />
-});
-
-const AIActivity = dynamicImport(() => import('../components/AIActivity'), {
-  loading: () => (
-    <ElectricBorder color="#00e5ff" speed={0.6} chaos={0.3} thickness={1.5}>
-      <div className="h-64 animate-pulse bg-slate-900/50 rounded-lg" />
-    </ElectricBorder>
-  )
-});
 
 export const dynamic = 'force-dynamic';
 
@@ -85,44 +63,32 @@ export default function FeedPage() {
     mutate();
   };
 
-  // Enhanced token processing with prioritization
+  // Simplified token processing with pagination
   const processTokens = (tokens: TokenData[] = []) => {
     if (!tokens.length) return { filtered: [], counts: { latest: 0, topScoring: 0, watchlist: 0, all: 0 } };
+
+    // Limit to maximum 20 tokens for performance
+    const limitedTokens = tokens.slice(0, 20);
 
     const now = new Date().getTime();
     const oneHourAgo = now - (60 * 60 * 1000);
 
-    const processedTokens = tokens.map((token, index) => {
+    const processedTokens = limitedTokens.map((token, index) => {
       const detectedTime = token.detectedAt ? new Date(token.detectedAt).getTime() : now;
       const isNew = detectedTime > oneHourAgo;
       const isTopScoring = (token.score > 50) && (token.riskLevel !== 'HIGH');
-      const isWatchlist = (token.score >= 35 && token.score <= 50) && 
-                         (token.riskLevel === 'MEDIUM' || token.riskLevel === 'HIGH') &&
-                         (token.marketCapSol || 0) > 25 &&
-                         (token.solAmount || 0) > 1.5 &&
-                         (token.supply || 0) < 1000000000;
+      const isWatchlist = (token.score >= 35 && token.score <= 50);
 
       return {
         ...token,
         isNew,
         isTrending: isTopScoring,
-        isWatchlist,
-        marketCapSol: token.marketCap || 0,
-        solAmount: token.volume || 0,
-        supply: 1000000000 // Default supply
+        isWatchlist
       };
     });
 
-    // Sort by priority: New > Top Scoring > Watchlist > Others
-    const sortedTokens = processedTokens.sort((a, b) => {
-      if (a.isNew && !b.isNew) return -1;
-      if (!a.isNew && b.isNew) return 1;
-      if (a.isTrending && !b.isTrending) return -1;
-      if (!a.isTrending && b.isTrending) return 1;
-      if (a.isWatchlist && !b.isWatchlist) return -1;
-      if (!a.isWatchlist && b.isWatchlist) return 1;
-      return b.score - a.score;
-    });
+    // Simple sort by score descending
+    const sortedTokens = processedTokens.sort((a, b) => b.score - a.score);
 
     const counts = {
       latest: processedTokens.filter(t => t.isNew).length,
@@ -174,246 +140,137 @@ export default function FeedPage() {
       <div className="min-h-screen bg-[#05060a] flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 mb-4">Failed to load market data</p>
-          <CyberButton onClick={handleRefresh} variant="primary">
+          <button 
+            onClick={handleRefresh}
+            className="px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded hover:bg-cyan-500/30 transition-colors"
+          >
             Retry Connection
-          </CyberButton>
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#05060a] relative overflow-hidden">
-      {/* Interactive Background */}
-      <div className="absolute inset-0 w-full h-full">
-        <LiquidEther 
-          colors={['#5227FF', '#FF9FFC', '#B19EEF']} 
-          mouseForce={20} 
-          cursorSize={100} 
-          isViscous={false} 
-          viscous={30} 
-          iterationsViscous={32} 
-          iterationsPoisson={32} 
-          resolution={0.5} 
-          isBounce={false} 
-          autoDemo={true} 
-          autoSpeed={0.5} 
-          autoIntensity={2.2} 
-          takeoverDuration={0.25} 
-          autoResumeDelay={3000} 
-          autoRampDuration={0.6} 
-        />
-        <Noise 
-          patternSize={250} 
-          patternScaleX={1} 
-          patternScaleY={1} 
-          patternRefreshInterval={2} 
-          patternAlpha={15} 
-        />
-      </div>
+    <div className="min-h-screen bg-slate-950">
       <PageNav />
       
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-12">
-        {/* Header */}
-        <div className="mb-16">
-          <AnimatedText>
-            <h1 className="text-center mb-4">
-              <MetallicPaint gradientColors={['#00e5ff', '#3fa9ff', '#7a5cff', '#00e5ff']}>
-                Live Market Intelligence
-              </MetallicPaint>
-            </h1>
-          </AnimatedText>
+        {/* Simple Header */}
+        <div className="mb-8">
+          <h1 className="text-center text-3xl font-bold text-white mb-4">
+            Live Market Intelligence
+          </h1>
           
-          <AnimatedText delay={0.2}>
-            <p className="text-center text-xl text-slate-400 mb-8 max-w-3xl mx-auto">
-              Real-time AI-powered analysis of token markets and emerging trends
-            </p>
-          </AnimatedText>
+          <p className="text-center text-slate-400 mb-6">
+            Real-time AI-powered analysis of token markets
+          </p>
 
-          <AnimatedText delay={0.3}>
-            <div className="flex items-center justify-center gap-6 flex-wrap">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-green-400 font-semibold text-sm uppercase tracking-wider">AI ACTIVE</span>
-              </div>
-              <div className="w-px h-4 bg-slate-700"></div>
-              <CyberButton onClick={handleRefresh} variant="primary" size="sm" disabled={isLoading}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                {isLoading ? 'Refreshing...' : 'Refresh Data'}
-              </CyberButton>
-              <div className="w-px h-4 bg-slate-700"></div>
-              <span className="text-slate-500 text-sm">
-                Updated: {data?.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'Live'}
-              </span>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span className="text-green-400 font-semibold text-sm">AI ACTIVE</span>
             </div>
-          </AnimatedText>
+            <button 
+              onClick={handleRefresh} 
+              disabled={isLoading}
+              className="px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded hover:bg-cyan-500/30 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 inline mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+            <span className="text-slate-500 text-sm">
+              Updated: {data?.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'Live'}
+            </span>
+          </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16">
+        {/* Simple Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { icon: Database, label: "Total Tokens", value: data?.totalTokens || 0, color: "#00e5ff" },
-            { icon: Target, label: "Active Metas", value: data?.activeMetas || 0, color: "#7a5cff" },
-            { icon: DollarSign, label: "Market Cap", value: `$${formatNumber(data?.totalMarketCap || 0)}`, color: "#3fa9ff" },
-            { icon: BarChart3, label: "Volume 24h", value: `$${formatNumber(data?.totalVolume || 0)}`, color: "#00e5ff" }
+            { icon: Database, label: "Total Tokens", value: data?.totalTokens || 0 },
+            { icon: Target, label: "Active Metas", value: data?.activeMetas || 0 },
+            { icon: DollarSign, label: "Market Cap", value: `$${formatNumber(data?.totalMarketCap || 0)}` },
+            { icon: BarChart3, label: "Volume 24h", value: `$${formatNumber(data?.totalVolume || 0)}` }
           ].map((stat, index) => (
-            <AnimatedText key={index} delay={0.1 * index}>
-              <ElectricBorder
-                color={stat.color}
-                speed={0.5}
-                chaos={0.2}
-                thickness={1}
-                style={{ borderRadius: 12 }}
-              >
-                <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 backdrop-blur-xl p-6 rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <stat.icon className="w-6 h-6" style={{ color: stat.color }} />
-                  </div>
-                  <p className="text-slate-400 text-xs uppercase tracking-wider mb-1">{stat.label}</p>
-                  <p className="text-2xl md:text-3xl font-bold text-white font-space-grotesk">{stat.value}</p>
-                </div>
-              </ElectricBorder>
-            </AnimatedText>
+            <div key={index} className="bg-slate-900/50 p-4 rounded-lg border border-slate-800/50">
+              <div className="flex items-center justify-between mb-2">
+                <stat.icon className="w-5 h-5 text-cyan-400" />
+              </div>
+              <p className="text-slate-400 text-xs uppercase tracking-wider mb-1">{stat.label}</p>
+              <p className="text-xl font-bold text-white">{stat.value}</p>
+            </div>
           ))}
         </div>
 
-        {/* Dynamic Token Filters */}
-        <AnimatedText delay={0.4}>
-          <TokenFilters 
-            onFilterChange={setActiveFilter}
-            activeFilter={activeFilter}
-            tokenCounts={counts}
-          />
-        </AnimatedText>
+        {/* Simple Token Filters */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 flex-wrap">
+            {[
+              { id: 'all', label: 'All', count: counts.all },
+              { id: 'latest', label: 'Latest', count: counts.latest },
+              { id: 'topScoring', label: 'Top Scoring', count: counts.topScoring },
+              { id: 'watchlist', label: 'Watchlist', count: counts.watchlist }
+            ].map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setActiveFilter(filter.id)}
+                className={`px-3 py-2 rounded text-sm transition-colors ${
+                  activeFilter === filter.id
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    : 'bg-slate-800/50 text-slate-300 hover:bg-slate-800/70'
+                }`}
+              >
+                {filter.label} ({filter.count})
+              </button>
+            ))}
+          </div>
+        </div>
 
-        {/* New Tokens List */}
-        <AnimatedText delay={0.5}>
-          <div className="mb-16">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl font-bold">
-                <MetallicPaint>
-                  {activeFilter === 'latest' && 'Just Created'}
-                  {activeFilter === 'topScoring' && 'Top Scoring Tokens'}
-                  {activeFilter === 'watchlist' && 'Watchlist Candidates'}
-                  {activeFilter === 'all' && 'Recent Detections'}
-                </MetallicPaint>
-              </h2>
-              <span className="text-slate-500 text-sm">
-                <Zap className="w-4 h-4 inline mr-1" />
-                {filteredTokens.length} tokens
-              </span>
+        {/* Simple Token List */}
+        <div className="mb-16">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white">
+              {activeFilter === 'latest' && 'Just Created'}
+              {activeFilter === 'topScoring' && 'Top Scoring Tokens'}
+              {activeFilter === 'watchlist' && 'Watchlist Candidates'}
+              {activeFilter === 'all' && 'Recent Detections'}
+            </h2>
+            <span className="text-slate-500 text-sm">
+              {filteredTokens.length} tokens
+            </span>
+          </div>
+          
+          <div className="bg-slate-900/50 rounded-lg border border-slate-800/50 overflow-hidden">
+            {/* Simple Header */}
+            <div className="grid grid-cols-12 gap-4 p-3 bg-slate-800/50 border-b border-slate-700/50 text-xs text-slate-400 font-medium">
+              <div className="col-span-1">#</div>
+              <div className="col-span-4">Token</div>
+              <div className="col-span-3 text-center">Scores</div>
+              <div className="col-span-2 text-center">Market</div>
+              <div className="col-span-2 text-center">Actions</div>
             </div>
             
-            <ElectricBorder
-              color="#00e5ff"
-              speed={0.8}
-              chaos={0.4}
-              thickness={1.5}
-              style={{ borderRadius: 16 }}
-            >
-              <div className="bg-gradient-to-br from-slate-900/80 to-slate-950/80 backdrop-blur-xl p-6 rounded-2xl">
-                {/* Table Header */}
-                <div className="grid grid-cols-12 gap-4 mb-4 pb-3 border-b border-slate-800/50">
-                  <div className="col-span-1 text-xs text-slate-500 font-medium uppercase tracking-wider">#</div>
-                  <div className="col-span-4 text-xs text-slate-500 font-medium uppercase tracking-wider">Token</div>
-                  <div className="col-span-3 text-xs text-slate-500 font-medium uppercase tracking-wider text-center">Scores</div>
-                  <div className="col-span-2 text-xs text-slate-500 font-medium uppercase tracking-wider text-center">Market</div>
-                  <div className="col-span-2 text-xs text-slate-500 font-medium uppercase tracking-wider text-center">Actions</div>
-                </div>
-                
-                {/* Token List */}
-                <div className="space-y-2">
-                  {filteredTokens.map((token, index) => (
-                    <TokenList key={token.address} token={token} index={index} />
-                  ))}
-                  {filteredTokens.length === 0 && (
-                    <div className="w-full text-center py-12">
-                      <Activity className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                      <p className="text-slate-400 text-lg">
-                        {activeFilter === 'latest' && 'No new tokens in the last hour'}
-                        {activeFilter === 'topScoring' && 'No top scoring tokens found'}
-                        {activeFilter === 'watchlist' && 'No watchlist candidates'}
-                        {activeFilter === 'all' && 'Scanning for new tokens'}
-                      </p>
-                      <p className="text-slate-600 text-sm mt-2">AI analysis in progress</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </ElectricBorder>
-          </div>
-        </AnimatedText>
-
-        {/* AI Activity & Top Metas */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          <AnimatedText delay={0.5}>
-            <AIActivity />
-          </AnimatedText>
-
-          <AnimatedText delay={0.6}>
+            {/* Token List */}
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold">
-                  <MetallicPaint gradientColors={['#7a5cff', '#3fa9ff', '#00e5ff', '#7a5cff']}>
-                    Meta Trends
-                  </MetallicPaint>
-                </h2>
-                <span className="text-slate-500 text-sm">
-                  {data?.topMetas?.length || 0} categories
-                </span>
-              </div>
-              
-              <ElectricBorder
-                color="#7a5cff"
-                speed={0.6}
-                chaos={0.3}
-                thickness={1.5}
-                style={{ borderRadius: 16 }}
-              >
-                <div className="bg-gradient-to-br from-purple-950/80 to-slate-950/80 backdrop-blur-xl p-6 rounded-2xl">
-                  <div className="space-y-3">
-                    {data?.topMetas?.map((meta, index) => (
-                      <motion.div
-                        key={meta.category}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="p-4 bg-slate-900/60 rounded-lg border border-slate-800/50 hover:border-purple-500/50 transition-all hover:scale-[1.02]"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-white font-semibold uppercase tracking-wide text-sm">
-                            {meta.category}
-                          </h3>
-                          <span className="text-slate-500 text-xs">
-                            {meta.tokenCount} tokens
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
-                            <span className="text-slate-400 text-sm">
-                              Score: {meta.averageScore.toFixed(1)}
-                            </span>
-                          </div>
-                          <div className="text-purple-400 text-xs font-mono">
-                            {meta.topTokens.slice(0, 2).join(', ')}
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                    {(!data?.topMetas || data.topMetas.length === 0) && (
-                      <div className="text-center py-8">
-                        <Target className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-                        <p className="text-slate-500">Analyzing meta trends</p>
-                      </div>
-                    )}
-                  </div>
+              {filteredTokens.map((token, index) => (
+                <TokenList key={token.address} token={token} index={index} />
+              ))}
+              {filteredTokens.length === 0 && (
+                <div className="w-full text-center py-12">
+                  <Activity className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                  <p className="text-slate-400">
+                    {activeFilter === 'latest' && 'No new tokens in the last hour'}
+                    {activeFilter === 'topScoring' && 'No top scoring tokens found'}
+                    {activeFilter === 'watchlist' && 'No watchlist candidates'}
+                    {activeFilter === 'all' && 'Scanning for new tokens'}
+                  </p>
                 </div>
-              </ElectricBorder>
+              )}
             </div>
-          </AnimatedText>
+          </div>
         </div>
+
       </main>
     </div>
   );
