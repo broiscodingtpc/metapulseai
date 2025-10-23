@@ -1,12 +1,18 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import dynamicImport from 'next/dynamic';
 import { ArrowRight, Clock, Users, DollarSign, TrendingUp, Shield, Zap } from 'lucide-react';
 import CyberCard from '../components/CyberCard';
 import AnimatedText from '../components/AnimatedText';
 import CyberButton from '../components/CyberButton';
 import PageNav from '../components/PageNav';
-import ParticleBackground from '../components/ParticleBackground';
+
+// Dynamic import for ParticleBackground
+const ParticleBackground = dynamicImport(() => import('../components/ParticleBackground'), {
+  ssr: false,
+  loading: () => <div className="fixed inset-0 bg-gradient-to-b from-dark-950 to-dark-900" />
+});
 
 export default function PresalePage() {
   return (

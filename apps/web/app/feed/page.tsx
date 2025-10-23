@@ -1,15 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import dynamicImport from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { TrendingUp, Activity, DollarSign, BarChart3, RefreshCw, Eye } from 'lucide-react';
 import CyberCard from '../components/CyberCard';
 import AnimatedText from '../components/AnimatedText';
 import CyberButton from '../components/CyberButton';
-import AIActivity from '../components/AIActivity';
 import PageNav from '../components/PageNav';
-import ParticleBackground from '../components/ParticleBackground';
 import TokenCard from '../components/TokenCard';
+import { fetcher } from '../lib/swr-config';
+
+// Dynamic imports for heavy components
+const ParticleBackground = dynamicImport(() => import('../components/ParticleBackground'), {
+  ssr: false,
+  loading: () => <div className="fixed inset-0 bg-gradient-to-b from-dark-950 to-dark-900" />
+});
+
+const AIActivity = dynamicImport(() => import('../components/AIActivity'), {
+  loading: () => <CyberCard><div className="h-64 animate-pulse bg-slate-800/50 rounded-lg" /></CyberCard>
+});
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -40,31 +50,26 @@ interface FeedData {
   totalVolume: number;
   newTokens: TokenData[];
   topMetas: MetaData[];
+  timestamp?: string;
+  lastUpdate?: string;
 }
 
 export default function FeedPage() {
-  const [data, setData] = useState<FeedData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-
-  const fetchData = async () => {
-    try {
-      const response = await fetch('/api/feed');
-      const feedData = await response.json();
-      setData(feedData);
-      setLastUpdate(new Date());
-    } catch (error) {
-      console.error('Error fetching feed data:', error);
-    } finally {
-      setLoading(false);
+  // Use SWR for optimized data fetching with automatic revalidation
+  const { data, error, isLoading, mutate } = useSWR<FeedData>(
+    '/api/feed',
+    fetcher,
+    {
+      refreshInterval: 10000, // Update every 10 seconds (reduced from 1 second)
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
     }
-  };
+  );
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 1000); // Update every 1 second for live AI activity
-    return () => clearInterval(interval);
-  }, []);
+  const handleRefresh = () => {
+    mutate(); // Manual refresh
+  };
 
   const formatNumber = (num: number) => {
     if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
@@ -92,7 +97,8 @@ export default function FeedPage() {
     return 'POOR';
   };
 
-  if (loading) {
+  // Show loading state on initial load
+  if (isLoading && !data) {
     return (
       <div className="min-h-screen bg-dark-950 flex items-center justify-center">
         <div className="text-center">
@@ -103,12 +109,26 @@ export default function FeedPage() {
     );
   }
 
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">Failed to load feed data</p>
+          <CyberButton onClick={handleRefresh} variant="primary">
+            Try Again
+          </CyberButton>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-dark-950 relative overflow-hidden">
+    <div className="min-h-screen bg-light-bg dark:bg-dark-950 relative overflow-hidden transition-colors duration-300">
       <ParticleBackground />
       <PageNav />
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+        {/* Page Header */}
         <div className="text-center mb-12">
           <AnimatedText>
             <h1 className="text-5xl font-bold mb-4 gradient-text">
@@ -127,13 +147,13 @@ export default function FeedPage() {
                 <span className="text-green-400 font-semibold">AI LIVE</span>
               </div>
               <span className="text-slate-400">•</span>
-              <CyberButton onClick={fetchData} variant="primary" size="sm">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
+              <CyberButton onClick={handleRefresh} variant="primary" size="sm" disabled={isLoading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                {isLoading ? 'Refreshing...' : 'Refresh'}
               </CyberButton>
               <span className="text-slate-400">•</span>
               <span className="text-slate-400 text-sm">
-                Last updated: {lastUpdate.toLocaleTimeString()}
+                Last updated: {data?.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'Never'}
               </span>
             </div>
           </AnimatedText>
@@ -282,7 +302,7 @@ export default function FeedPage() {
             </CyberCard>
           </AnimatedText>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

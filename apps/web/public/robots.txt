@@ -1,0 +1,33 @@
+# MetaPulse AI Bot - Robots.txt
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /offline
+
+# Sitemaps
+Sitemap: https://www.metapulse.tech/sitemap.xml
+
+# Crawl-delay (optional, adjust as needed)
+Crawl-delay: 1
+
+# Specific bots
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: SemrushBot
+Crawl-delay: 10
+

@@ -2,14 +2,22 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import useSWR from 'swr';
+import dynamicImport from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { Search, Filter, TrendingUp, TrendingDown, Eye, ExternalLink, Star } from 'lucide-react';
 import CyberCard from '../components/CyberCard';
 import AnimatedText from '../components/AnimatedText';
 import CyberButton from '../components/CyberButton';
 import PageNav from '../components/PageNav';
-import ParticleBackground from '../components/ParticleBackground';
 import TokenCard from '../components/TokenCard';
+import { fetcher } from '../lib/swr-config';
+
+// Dynamic import for ParticleBackground
+const ParticleBackground = dynamicImport(() => import('../components/ParticleBackground'), {
+  ssr: false,
+  loading: () => <div className="fixed inset-0 bg-gradient-to-b from-dark-950 to-dark-900" />
+});
 
 // Force dynamic rendering to avoid prerender errors
 export const dynamic = 'force-dynamic';
@@ -40,30 +48,26 @@ interface FeedData {
 
 function TokensPageContent() {
   const searchParams = useSearchParams();
-  const [data, setData] = useState<FeedData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'score' | 'marketCap' | 'volume' | 'change24h'>('score');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [selectedToken, setSelectedToken] = useState<TokenData | null>(null);
-
-  const fetchData = async () => {
-    try {
-      const response = await fetch('/api/feed');
-      const feedData = await response.json();
-      setData(feedData);
-    } catch (error) {
-      console.error('Error fetching token data:', error);
-    } finally {
-      setLoading(false);
+  
+  // Use SWR for optimized data fetching
+  const { data, error, isLoading, mutate } = useSWR<FeedData>(
+    '/api/feed',
+    fetcher,
+    {
+      refreshInterval: 10000, // Update every 10 seconds
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
     }
-  };
+  );
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 2000); // Update every 2 seconds for live DEX feel
-    return () => clearInterval(interval);
-  }, []);
+  const handleRefresh = () => {
+    mutate();
+  };
 
   // Handle URL parameter for meta filter
   useEffect(() => {
@@ -123,19 +127,32 @@ function TokensPageContent() {
 
   const categories = ['all', ...new Set(data?.newTokens?.map(token => token.category) || [])];
 
-  if (loading) {
+  if (isLoading && !data) {
     return (
-      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+      <div className="min-h-screen bg-light-bg dark:bg-dark-950 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-300">Loading token data...</p>
+          <p className="text-slate-600 dark:text-slate-300">Loading token data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-light-bg dark:bg-dark-950 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">Failed to load token data</p>
+          <CyberButton onClick={handleRefresh} variant="primary">
+            Try Again
+          </CyberButton>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-dark-950 relative overflow-hidden">
+    <div className="min-h-screen bg-light-bg dark:bg-dark-950 relative overflow-hidden transition-colors duration-300">
       <ParticleBackground />
       <PageNav />
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
@@ -232,9 +249,9 @@ function TokensPageContent() {
                 <option value="change24h" className="bg-dark-900 text-white">Sort by 24h Change</option>
               </select>
               
-              <CyberButton onClick={fetchData} variant="primary" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                Refresh
+              <CyberButton onClick={handleRefresh} variant="primary" size="sm" disabled={isLoading}>
+                <Filter className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                {isLoading ? 'Refreshing...' : 'Refresh'}
               </CyberButton>
             </div>
           </CyberCard>

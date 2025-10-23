@@ -12,6 +12,8 @@ interface CyberButtonProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   disabled?: boolean;
+  ariaLabel?: string;
+  type?: 'button' | 'submit' | 'reset';
 }
 
 export default function CyberButton({ 
@@ -22,7 +24,9 @@ export default function CyberButton({
   variant = 'primary', 
   size = 'md',
   className = '',
-  disabled = false
+  disabled = false,
+  ariaLabel,
+  type = 'button'
 }: CyberButtonProps) {
   const variants = {
     primary: 'from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400',
@@ -37,7 +41,9 @@ export default function CyberButton({
   };
 
   const ButtonComponent = href ? 'a' : 'button';
-  const buttonProps = href ? { href } : { onClick, disabled };
+  const buttonProps = href 
+    ? { href, target: href.startsWith('http') ? '_blank' : undefined, rel: href.startsWith('http') ? 'noopener noreferrer' : undefined } 
+    : { onClick, disabled, type };
 
   return (
     <motion.div
@@ -50,7 +56,11 @@ export default function CyberButton({
           cta-button button-glow
           ${sizes[size]} ${className}
           inline-flex items-center gap-2
+          focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
+          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
+        aria-label={ariaLabel}
+        aria-disabled={disabled}
       >
         <motion.div
           className="absolute inset-0 bg-white/20"

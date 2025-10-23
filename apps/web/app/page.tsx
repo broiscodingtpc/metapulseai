@@ -1,25 +1,33 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import dynamicImport from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowRight, Brain, Zap, Target, Shield, TrendingUp, Users, Globe, DollarSign } from 'lucide-react';
 import Logo from './components/Logo';
 import CyberButton from './components/CyberButton';
 import CyberCard from './components/CyberCard';
 import AnimatedText from './components/AnimatedText';
-import ParticleBackground from './components/ParticleBackground';
 import PageNav from './components/PageNav';
+
+// Dynamic imports for heavy components to improve initial load
+const ParticleBackground = dynamicImport(() => import('./components/ParticleBackground'), {
+  ssr: false, // Disable SSR for canvas-based component
+  loading: () => <div className="fixed inset-0 bg-gradient-to-b from-dark-950 to-dark-900" />
+});
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-dark-950 relative overflow-hidden">
+    <div className="min-h-screen bg-light-bg dark:bg-dark-950 relative overflow-hidden transition-colors duration-300">
       <ParticleBackground />
       
       {/* Navigation */}
       <PageNav />
 
-      {/* Hero Section */}
-      <section className="relative z-10 px-6 py-20 text-center">
+      {/* Main Content */}
+      <main className="relative z-10">
+        {/* Hero Section */}
+        <section className="px-6 py-20 text-center" aria-label="Hero">
         <AnimatedText delay={0.2}>
           <motion.h1 
             className="text-6xl md:text-8xl font-bold mb-6"
@@ -336,11 +344,13 @@ export default function HomePage() {
         </div>
       </section>
 
+      </main>
+
       {/* Footer */}
-      <footer className="relative z-10 px-6 py-12 border-t border-slate-800">
+      <footer className="relative z-10 px-6 py-12 border-t border-slate-200 dark:border-slate-800" role="contentinfo">
         <div className="max-w-6xl mx-auto text-center">
           <Logo size="lg" className="mx-auto mb-4" />
-          <p className="text-slate-400 mb-4">
+          <p className="text-slate-600 dark:text-slate-400 mb-4">
             MetaPulse AI Bot — $PULSEAI
           </p>
           <p className="text-slate-500 text-sm">

@@ -2,13 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
+import dynamicImport from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { TrendingUp, Users, Activity, BarChart3, Target, Zap } from 'lucide-react';
 import CyberCard from '../components/CyberCard';
 import AnimatedText from '../components/AnimatedText';
 import CyberButton from '../components/CyberButton';
 import PageNav from '../components/PageNav';
-import ParticleBackground from '../components/ParticleBackground';
+import { fetcher } from '../lib/swr-config';
+
+// Dynamic import for ParticleBackground
+const ParticleBackground = dynamicImport(() => import('../components/ParticleBackground'), {
+  ssr: false,
+  loading: () => <div className="fixed inset-0 bg-gradient-to-b from-dark-950 to-dark-900" />
+});
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -35,29 +43,25 @@ interface FeedData {
 
 export default function MetasPage() {
   const router = useRouter();
-  const [data, setData] = useState<FeedData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'score' | 'tokens' | 'marketCap' | 'volume'>('score');
   const [selectedMeta, setSelectedMeta] = useState<MetaData | null>(null);
   const [trackedMetas, setTrackedMetas] = useState<string[]>([]);
-
-  const fetchData = async () => {
-    try {
-      const response = await fetch('/api/feed');
-      const feedData = await response.json();
-      setData(feedData);
-    } catch (error) {
-      console.error('Error fetching meta data:', error);
-    } finally {
-      setLoading(false);
+  
+  // Use SWR for optimized data fetching
+  const { data, error, isLoading, mutate } = useSWR<FeedData>(
+    '/api/feed',
+    fetcher,
+    {
+      refreshInterval: 10000, // Update every 10 seconds
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
     }
-  };
+  );
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const handleRefresh = () => {
+    mutate(); // Manual refresh
+  };
 
   // Load tracked metas from localStorage
   useEffect(() => {
@@ -137,12 +141,25 @@ export default function MetasPage() {
       }
     }) || [];
 
-  if (loading) {
+  if (isLoading && !data) {
     return (
       <div className="min-h-screen bg-dark-950 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-300">Loading meta analysis...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">Failed to load meta data</p>
+          <CyberButton onClick={handleRefresh} variant="primary">
+            Try Again
+          </CyberButton>
         </div>
       </div>
     );
@@ -236,9 +253,9 @@ export default function MetasPage() {
                 </select>
               </div>
               
-              <CyberButton onClick={fetchData} variant="primary" size="sm">
-                <Zap className="w-4 h-4 mr-2" />
-                Refresh Analysis
+              <CyberButton onClick={handleRefresh} variant="primary" size="sm" disabled={isLoading}>
+                <Zap className={`w-4 h-4 mr-2 ${isLoading ? 'animate-pulse' : ''}`} />
+                {isLoading ? 'Refreshing...' : 'Refresh Analysis'}
               </CyberButton>
             </div>
           </CyberCard>

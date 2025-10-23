@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 
+// Cache configuration
+const CACHE_MAX_AGE = 10; // 10 seconds
+const STALE_WHILE_REVALIDATE = 30; // 30 seconds
+
 export async function GET() {
   try {
     // Try to fetch from bot API
@@ -8,7 +12,7 @@ export async function GET() {
     
     try {
       const botResponse = await fetch(botUrl, {
-        next: { revalidate: 2 } // Cache for 2 seconds
+        next: { revalidate: CACHE_MAX_AGE } // Cache for 10 seconds
       });
       
       if (botResponse.ok) {
@@ -43,7 +47,7 @@ export async function GET() {
           };
         });
         
-        return NextResponse.json({
+        const response = NextResponse.json({
           status: 'ok',
           message: 'Live data from bot',
           timestamp: botData.generatedAt || new Date().toISOString(),
@@ -65,6 +69,11 @@ export async function GET() {
           isLive: true,
           lastUpdate: botData.generatedAt || new Date().toISOString()
         });
+        
+        // Add cache headers for better performance
+        response.headers.set('Cache-Control', `public, s-maxage=${CACHE_MAX_AGE}, stale-while-revalidate=${STALE_WHILE_REVALIDATE}`);
+        
+        return response;
       }
     } catch (botError) {
       console.log('Bot API not available, using fallback');
