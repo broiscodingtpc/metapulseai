@@ -368,6 +368,110 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Presale Section */}
+        <section className="px-6 py-24" aria-label="Presale">
+          <div className="max-w-6xl mx-auto">
+            <AnimatedText>
+              <h2 className="text-5xl md:text-6xl font-bold text-center mb-4">
+                <MetallicPaint gradientColors={['#ff6b6b', '#ffa500', '#ffff00', '#ff6b6b']}>
+                  Token Presale
+                </MetallicPaint>
+              </h2>
+              <p className="text-xl text-slate-400 text-center mb-16 max-w-2xl mx-auto">
+                Secure your allocation of $PULSEAI tokens at presale rates
+              </p>
+            </AnimatedText>
+
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Presale Widget */}
+              <AnimatedText delay={0.2}>
+                <ElectricBorder
+                  color="#ffa500"
+                  speed={0.8}
+                  chaos={0.4}
+                  thickness={2}
+                  style={{ borderRadius: 24 }}
+                >
+                  <div className="bg-gradient-to-br from-orange-950/80 to-slate-950/80 backdrop-blur-xl p-8 rounded-[24px]">
+                    <h3 className="text-2xl font-bold text-white mb-6 text-center uppercase tracking-wide">
+                      Join Presale
+                    </h3>
+                    <div className="bg-slate-950 rounded-xl p-4 mb-6 border border-slate-800">
+                      <iframe 
+                        width="100%" 
+                        height="500" 
+                        frameBorder="0" 
+                        scrolling="no" 
+                        src="https://solsale.app/embed/?address=68cAkd84nFqD9zjP5Y619XPbbssgmzwxjPyN5dMhqwGj&bgColor=%2312181F&fgColor=%23161D27&hasAnimation=true&hasBanner=true&hasSocialLinks=true&network=999999&padding=30&refer=2FHA2AdY8f1Yr2b92ok9YD725jx7ZNiL1t7cGaxV31ZF&responsive=false&saleType=presale&theme=dark&txtColor=%23FFFFFF"
+                        className="rounded-lg"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-slate-500 text-sm mb-4 uppercase tracking-wide">
+                        Connect Wallet to Participate
+                      </p>
+                    </div>
+                  </div>
+                </ElectricBorder>
+              </AnimatedText>
+
+              {/* Benefits */}
+              <div className="space-y-6">
+                <AnimatedText delay={0.3}>
+                  <ElectricBorder color="#00e5ff" speed={0.6} chaos={0.3} thickness={1.5} style={{ borderRadius: 16 }}>
+                    <div className="bg-gradient-to-br from-cyan-950/80 to-slate-950/80 backdrop-blur-xl p-6 rounded-2xl">
+                      <h3 className="text-2xl font-bold text-white mb-4 uppercase tracking-wide">Why Invest</h3>
+                      <div className="space-y-4">
+                        {[
+                          { title: "AI-Powered Intelligence", desc: "Advanced system detecting market trends before mainstream" },
+                          { title: "Revenue Sharing", desc: "70% of all service revenue goes to token buybacks" },
+                          { title: "Utility Token", desc: "Required for all MetaPulse premium features" }
+                        ].map((item, i) => (
+                          <div key={i} className="flex gap-3">
+                            <div className="w-8 h-8 bg-cyan-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Zap className="w-4 h-4 text-cyan-400" />
+                            </div>
+                            <div>
+                              <h4 className="text-white font-semibold text-sm mb-1">{item.title}</h4>
+                              <p className="text-slate-500 text-xs">{item.desc}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </ElectricBorder>
+                </AnimatedText>
+
+                <AnimatedText delay={0.4}>
+                  <ElectricBorder color="#7a5cff" speed={0.6} chaos={0.3} thickness={1.5} style={{ borderRadius: 16 }}>
+                    <div className="bg-gradient-to-br from-purple-950/80 to-slate-950/80 backdrop-blur-xl p-6 rounded-2xl">
+                      <h3 className="text-2xl font-bold text-white mb-4 uppercase tracking-wide">Token Supply</h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between p-2 bg-slate-900/50 rounded">
+                          <span className="text-slate-400 text-sm">Total Supply</span>
+                          <span className="text-white font-mono font-semibold">1,000,000,000</span>
+                        </div>
+                        <div className="flex justify-between p-2 bg-slate-900/50 rounded">
+                          <span className="text-slate-400 text-sm">Presale</span>
+                          <span className="text-cyan-400 font-mono font-bold">30%</span>
+                        </div>
+                        <div className="flex justify-between p-2 bg-slate-900/50 rounded">
+                          <span className="text-slate-400 text-sm">Development</span>
+                          <span className="text-purple-400 font-mono font-bold">30%</span>
+                        </div>
+                        <div className="flex justify-between p-2 bg-slate-900/50 rounded">
+                          <span className="text-slate-400 text-sm">Liquidity</span>
+                          <span className="text-green-400 font-mono font-bold">10%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </ElectricBorder>
+                </AnimatedText>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CTA Section */}
         <section className="px-6 py-32" aria-label="Call to Action">
           <div className="max-w-4xl mx-auto text-center">

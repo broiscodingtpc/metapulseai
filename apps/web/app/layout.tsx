@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Sora, Orbitron, JetBrains_Mono } from 'next/font/google';
+import { Space_Grotesk, Outfit, Rajdhani } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from './context/ThemeContext';
 import ServiceWorkerRegistration from './components/ServiceWorkerRegistration';
@@ -7,33 +7,26 @@ import ToastProvider from './components/ToastProvider';
 import Logo from './components/Logo';
 import CyberButton from './components/CyberButton';
 
-// Optimize fonts with next/font
-const inter = Inter({ 
+// Professional DApp fonts with next/font
+const spaceGrotesk = Space_Grotesk({ 
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-space-grotesk',
   display: 'swap',
   weight: ['300', '400', '500', '600', '700'],
 });
 
-const sora = Sora({ 
+const outfit = Outfit({ 
   subsets: ['latin'],
-  variable: '--font-sora',
+  variable: '--font-outfit',
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700', '800'],
+});
+
+const rajdhani = Rajdhani({ 
+  subsets: ['latin'],
+  variable: '--font-rajdhani',
   display: 'swap',
   weight: ['300', '400', '500', '600', '700'],
-});
-
-const orbitron = Orbitron({ 
-  subsets: ['latin'],
-  variable: '--font-orbitron',
-  display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const jetbrainsMono = JetBrains_Mono({ 
-  subsets: ['latin'],
-  variable: '--font-jetbrains',
-  display: 'swap',
-  weight: ['300', '400', '500', '600'],
 });
 
 export const metadata: Metadata = {
@@ -54,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${sora.variable} ${orbitron.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${spaceGrotesk.variable} ${outfit.variable} ${rajdhani.variable}`} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="manifest" href="/manifest.json" />
@@ -71,7 +64,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`bg-light-bg dark:bg-dark-950 text-light-text-high dark:text-white antialiased transition-colors duration-300 ${inter.className}`}>
+      <body className={`bg-light-bg dark:bg-dark-950 text-light-text-high dark:text-white antialiased transition-colors duration-300 ${outfit.className}`}>
         <ServiceWorkerRegistration />
         <ThemeProvider>
           <ToastProvider />

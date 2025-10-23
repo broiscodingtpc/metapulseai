@@ -41,10 +41,12 @@ module.exports = {
         },
       },
       fontFamily: {
-        'sora': ['var(--font-sora)', 'sans-serif'],
-        'orbitron': ['var(--font-orbitron)', 'monospace'],
-        'inter': ['var(--font-inter)', 'sans-serif'],
-        'jetbrains': ['var(--font-jetbrains)', 'monospace'],
+        'space-grotesk': ['var(--font-space-grotesk)', 'sans-serif'],
+        'outfit': ['var(--font-outfit)', 'sans-serif'],
+        'rajdhani': ['var(--font-rajdhani)', 'sans-serif'],
+        sans: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-space-grotesk)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-rajdhani)', 'monospace'],
       },
       animation: {
         'plasma-sweep': 'plasma-sweep 8s ease-in-out infinite',
