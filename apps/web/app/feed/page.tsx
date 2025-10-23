@@ -242,8 +242,8 @@ export default function FeedPage() {
           </div>
           
           <div className="bg-slate-900/50 rounded-lg border border-slate-800/50 overflow-hidden">
-            {/* Simple Header */}
-            <div className="grid grid-cols-12 gap-4 p-3 bg-slate-800/50 border-b border-slate-700/50 text-xs text-slate-400 font-medium">
+            {/* Simple Header - Hidden on Mobile */}
+            <div className="hidden md:grid grid-cols-12 gap-4 p-3 bg-slate-800/50 border-b border-slate-700/50 text-xs text-slate-400 font-medium">
               <div className="col-span-1">#</div>
               <div className="col-span-4">Token</div>
               <div className="col-span-3 text-center">Scores</div>
