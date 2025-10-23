@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import useSWR from 'swr';
 import dynamicImport from 'next/dynamic';
 import { motion } from 'framer-motion';
@@ -8,6 +9,7 @@ import AnimatedText from '../components/AnimatedText';
 import CyberButton from '../components/CyberButton';
 import PageNav from '../components/PageNav';
 import TokenList from '../components/TokenList';
+import TokenFilters from '../components/TokenFilters';
 import ElectricBorder from '../components/ElectricBorder';
 import MetallicPaint from '../components/MetallicPaint';
 import LiquidEther from '../components/LiquidEther';
@@ -40,6 +42,11 @@ interface TokenData {
   volume: number;
   price: number;
   change24h: number;
+  detectedAt?: string;
+  riskLevel?: string;
+  marketCapSol?: number;
+  solAmount?: number;
+  supply?: number;
 }
 
 interface MetaData {
@@ -61,6 +68,8 @@ interface FeedData {
 }
 
 export default function FeedPage() {
+  const [activeFilter, setActiveFilter] = useState('all');
+  
   const { data, error, isLoading, mutate } = useSWR<FeedData>(
     '/api/feed',
     fetcher,
@@ -75,6 +84,72 @@ export default function FeedPage() {
   const handleRefresh = () => {
     mutate();
   };
+
+  // Enhanced token processing with prioritization
+  const processTokens = (tokens: TokenData[] = []) => {
+    if (!tokens.length) return { filtered: [], counts: { latest: 0, topScoring: 0, watchlist: 0, all: 0 } };
+
+    const now = new Date().getTime();
+    const oneHourAgo = now - (60 * 60 * 1000);
+
+    const processedTokens = tokens.map((token, index) => {
+      const detectedTime = token.detectedAt ? new Date(token.detectedAt).getTime() : now;
+      const isNew = detectedTime > oneHourAgo;
+      const isTopScoring = (token.score > 50) && (token.riskLevel !== 'HIGH');
+      const isWatchlist = (token.score >= 35 && token.score <= 50) && 
+                         (token.riskLevel === 'MEDIUM' || token.riskLevel === 'HIGH') &&
+                         (token.marketCapSol || 0) > 25 &&
+                         (token.solAmount || 0) > 1.5 &&
+                         (token.supply || 0) < 1000000000;
+
+      return {
+        ...token,
+        isNew,
+        isTrending: isTopScoring,
+        isWatchlist,
+        marketCapSol: token.marketCap || 0,
+        solAmount: token.volume || 0,
+        supply: 1000000000 // Default supply
+      };
+    });
+
+    // Sort by priority: New > Top Scoring > Watchlist > Others
+    const sortedTokens = processedTokens.sort((a, b) => {
+      if (a.isNew && !b.isNew) return -1;
+      if (!a.isNew && b.isNew) return 1;
+      if (a.isTrending && !b.isTrending) return -1;
+      if (!a.isTrending && b.isTrending) return 1;
+      if (a.isWatchlist && !b.isWatchlist) return -1;
+      if (!a.isWatchlist && b.isWatchlist) return 1;
+      return b.score - a.score;
+    });
+
+    const counts = {
+      latest: processedTokens.filter(t => t.isNew).length,
+      topScoring: processedTokens.filter(t => t.isTrending).length,
+      watchlist: processedTokens.filter(t => t.isWatchlist).length,
+      all: processedTokens.length
+    };
+
+    let filtered = sortedTokens;
+    switch (activeFilter) {
+      case 'latest':
+        filtered = sortedTokens.filter(t => t.isNew);
+        break;
+      case 'topScoring':
+        filtered = sortedTokens.filter(t => t.isTrending);
+        break;
+      case 'watchlist':
+        filtered = sortedTokens.filter(t => t.isWatchlist);
+        break;
+      default:
+        filtered = sortedTokens;
+    }
+
+    return { filtered, counts };
+  };
+
+  const { filtered: filteredTokens, counts } = processTokens(data?.newTokens);
 
   const formatNumber = (num: number) => {
     if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
@@ -202,16 +277,30 @@ export default function FeedPage() {
           ))}
         </div>
 
-        {/* New Tokens List */}
+        {/* Dynamic Token Filters */}
         <AnimatedText delay={0.4}>
+          <TokenFilters 
+            onFilterChange={setActiveFilter}
+            activeFilter={activeFilter}
+            tokenCounts={counts}
+          />
+        </AnimatedText>
+
+        {/* New Tokens List */}
+        <AnimatedText delay={0.5}>
           <div className="mb-16">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold">
-                <MetallicPaint>Recent Detections</MetallicPaint>
+                <MetallicPaint>
+                  {activeFilter === 'latest' && 'Just Created'}
+                  {activeFilter === 'topScoring' && 'Top Scoring Tokens'}
+                  {activeFilter === 'watchlist' && 'Watchlist Candidates'}
+                  {activeFilter === 'all' && 'Recent Detections'}
+                </MetallicPaint>
               </h2>
               <span className="text-slate-500 text-sm">
                 <Zap className="w-4 h-4 inline mr-1" />
-                {data?.newTokens?.length || 0} tokens
+                {filteredTokens.length} tokens
               </span>
             </div>
             
@@ -234,13 +323,18 @@ export default function FeedPage() {
                 
                 {/* Token List */}
                 <div className="space-y-2">
-                  {data?.newTokens?.map((token, index) => (
+                  {filteredTokens.map((token, index) => (
                     <TokenList key={token.address} token={token} index={index} />
                   ))}
-                  {(!data?.newTokens || data.newTokens.length === 0) && (
+                  {filteredTokens.length === 0 && (
                     <div className="w-full text-center py-12">
                       <Activity className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                      <p className="text-slate-400 text-lg">Scanning for new tokens</p>
+                      <p className="text-slate-400 text-lg">
+                        {activeFilter === 'latest' && 'No new tokens in the last hour'}
+                        {activeFilter === 'topScoring' && 'No top scoring tokens found'}
+                        {activeFilter === 'watchlist' && 'No watchlist candidates'}
+                        {activeFilter === 'all' && 'Scanning for new tokens'}
+                      </p>
                       <p className="text-slate-600 text-sm mt-2">AI analysis in progress</p>
                     </div>
                   )}

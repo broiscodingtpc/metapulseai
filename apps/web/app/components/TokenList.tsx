@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, ExternalLink, Shield, Zap, Target, Activity, Clock } from 'lucide-react';
 import Image from 'next/image';
+import ScoreBadge from './ScoreBadge';
+import TokenAlert from './TokenAlert';
 
 interface TokenListProps {
   token: {
@@ -23,6 +25,12 @@ interface TokenListProps {
     volume?: number;
     price?: number;
     change24h?: number;
+    marketCapSol?: number;
+    solAmount?: number;
+    supply?: number;
+    isNew?: boolean;
+    isTrending?: boolean;
+    isWatchlist?: boolean;
   };
   index?: number;
 }
@@ -183,7 +191,14 @@ export default function TokenList({ token, index = 0 }: TokenListProps) {
               </div>
             </div>
             <p className="text-slate-400 text-sm truncate">{token.name}</p>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {/* Visual Alerts */}
+              {token.isNew && <TokenAlert type="new" size="sm" />}
+              {token.isTrending && <TokenAlert type="trending" size="sm" />}
+              {token.isWatchlist && <TokenAlert type="watchlist" size="sm" />}
+              {token.riskLevel === 'HIGH' && <TokenAlert type="warning" size="sm" />}
+              {token.score >= 50 && token.riskLevel !== 'HIGH' && <TokenAlert type="potential" size="sm" />}
+              
               {timeAgo && (
                 <div className="flex items-center gap-1 text-slate-500 text-xs">
                   <Clock className="w-3 h-3" />
@@ -198,24 +213,21 @@ export default function TokenList({ token, index = 0 }: TokenListProps) {
         </div>
 
         {/* Center Section - Scores */}
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-4">
           <div className="text-center">
             <div className="text-xs text-slate-500 mb-1">Tech</div>
-            <div className={`font-bold ${getScoreColor(token.techScore || 0)}`}>
+            <div className={`font-bold text-sm ${getScoreColor(token.techScore || 0)}`}>
               {token.techScore || 0}
             </div>
           </div>
           <div className="text-center">
             <div className="text-xs text-slate-500 mb-1">AI</div>
-            <div className={`font-bold ${getScoreColor(token.metaScore || 0)}`}>
+            <div className={`font-bold text-sm ${getScoreColor(token.metaScore || 0)}`}>
               {token.metaScore || 0}
             </div>
           </div>
           <div className="text-center">
-            <div className="text-xs text-slate-500 mb-1">Score</div>
-            <div className={`font-bold text-lg ${getScoreColor(token.score)}`}>
-              {token.score}
-            </div>
+            <ScoreBadge score={token.score} riskLevel={token.riskLevel} size="sm" />
           </div>
         </div>
 
