@@ -1,25 +1,16 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import './Noise.css';
 
-interface NoiseProps {
-  patternSize?: number;
-  patternScaleX?: number;
-  patternScaleY?: number;
-  patternRefreshInterval?: number;
-  patternAlpha?: number;
-  className?: string;
-}
-
-const Noise = ({
-  patternSize = 250,
-  patternScaleX = 1,
-  patternScaleY = 1,
-  patternRefreshInterval = 2,
-  patternAlpha = 15,
-  className = ''
-}: NoiseProps) => {
-  const grainRef = useRef<HTMLCanvasElement>(null);
+const Noise = ({ 
+  patternSize = 250, 
+  patternScaleX = 1, 
+  patternScaleY = 1, 
+  patternRefreshInterval = 2, 
+  patternAlpha = 15 
+}) => {
+  const grainRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     const canvas = grainRef.current;
@@ -30,6 +21,7 @@ const Noise = ({
 
     let frame = 0;
     let animationId: number;
+
     const canvasSize = 1024;
 
     const resize = () => {
@@ -75,12 +67,11 @@ const Noise = ({
 
   return (
     <canvas 
-      className={`fixed left-0 top-0 w-screen h-screen pointer-events-none ${className}`} 
+      className="noise-overlay" 
       ref={grainRef} 
-      style={{ imageRendering: 'pixelated', zIndex: 100, opacity: 0.4, mixBlendMode: 'overlay' }} 
+      style={{ imageRendering: 'pixelated' }} 
     />
   );
 };
 
 export default Noise;
-

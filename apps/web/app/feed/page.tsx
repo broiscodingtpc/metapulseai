@@ -10,6 +10,8 @@ import PageNav from '../components/PageNav';
 import TokenCard from '../components/TokenCard';
 import ElectricBorder from '../components/ElectricBorder';
 import MetallicPaint from '../components/MetallicPaint';
+import LiquidEther from '../components/LiquidEther';
+import Noise from '../components/Noise';
 import { fetcher } from '../lib/swr-config';
 
 // Dynamic imports
@@ -107,7 +109,33 @@ export default function FeedPage() {
 
   return (
     <div className="min-h-screen bg-[#05060a] relative overflow-hidden">
-      <OrbBackground colors={['#00e5ff', '#3fa9ff', '#7a5cff']} count={3} />
+      {/* Interactive Background */}
+      <div className="absolute inset-0 w-full h-full">
+        <LiquidEther 
+          colors={['#5227FF', '#FF9FFC', '#B19EEF']} 
+          mouseForce={20} 
+          cursorSize={100} 
+          isViscous={false} 
+          viscous={30} 
+          iterationsViscous={32} 
+          iterationsPoisson={32} 
+          resolution={0.5} 
+          isBounce={false} 
+          autoDemo={true} 
+          autoSpeed={0.5} 
+          autoIntensity={2.2} 
+          takeoverDuration={0.25} 
+          autoResumeDelay={3000} 
+          autoRampDuration={0.6} 
+        />
+        <Noise 
+          patternSize={250} 
+          patternScaleX={1} 
+          patternScaleY={1} 
+          patternRefreshInterval={2} 
+          patternAlpha={15} 
+        />
+      </div>
       <PageNav />
       
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-12">

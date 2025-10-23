@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import CyberButton from './CyberButton';
 import ThemeToggle from './ThemeToggle';
+import CircularText from './CircularText';
 
 export default function PageNav() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -18,18 +19,22 @@ export default function PageNav() {
     <>
       <header>
         <nav className="relative z-50 flex items-center justify-between p-6 mb-8" role="navigation" aria-label="Main navigation">
-          <div className="text-2xl font-bold gradient-text">
-            <span className="sr-only">MetaPulse AI - </span>MetaPulse AI
-          </div>
+          <Link href="/" className="block">
+            <CircularText 
+              text="METAPULSE*AI*BOT*$PULSEAI*"
+              spinDuration={20}
+              onHover="speedUp"
+              size={80}
+            />
+          </Link>
         
           <div className="hidden md:flex space-x-8 items-center">
             <Link href="/" className="text-slate-700 dark:text-white hover:text-primary-500 dark:hover:text-primary-400 transition-colors">Home</Link>
-            <Link href="/presale" className="text-slate-700 dark:text-white hover:text-primary-500 dark:hover:text-primary-400 transition-colors">Presale</Link>
             <Link href="/feed" className="text-slate-700 dark:text-white hover:text-primary-500 dark:hover:text-primary-400 transition-colors">Live Feed</Link>
             <Link href="/tokens" className="text-slate-700 dark:text-white hover:text-primary-500 dark:hover:text-primary-400 transition-colors">Scanner</Link>
             <Link href="/metas" className="text-slate-700 dark:text-white hover:text-primary-500 dark:hover:text-primary-400 transition-colors">Metas</Link>
             <a href="https://x.com/METAPULSaibot" target="_blank" rel="noopener noreferrer" className="text-slate-700 dark:text-white hover:text-primary-500 dark:hover:text-primary-400 transition-colors">
-              𝕏 Twitter
+              Twitter
             </a>
           </div>
           

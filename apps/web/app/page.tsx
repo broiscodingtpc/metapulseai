@@ -11,6 +11,8 @@ import MetallicPaint from './components/MetallicPaint';
 import LogoLoop from './components/LogoLoop';
 import AnimatedText from './components/AnimatedText';
 import PageNav from './components/PageNav';
+import LiquidEther from './components/LiquidEther';
+import Noise from './components/Noise';
 
 // Dynamic imports for heavy components
 const OrbBackground = dynamicImport(() => import('./components/OrbBackground'), {
@@ -36,8 +38,33 @@ const techLogos = [
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#05060a] dark:bg-[#05060a] relative overflow-hidden">
-      <OrbBackground colors={['#00e5ff', '#3fa9ff', '#7a5cff']} count={4} />
-      <ParticleBackground />
+      {/* Interactive Background */}
+      <div className="absolute inset-0 w-full h-full">
+        <LiquidEther 
+          colors={['#5227FF', '#FF9FFC', '#B19EEF']} 
+          mouseForce={20} 
+          cursorSize={100} 
+          isViscous={false} 
+          viscous={30} 
+          iterationsViscous={32} 
+          iterationsPoisson={32} 
+          resolution={0.5} 
+          isBounce={false} 
+          autoDemo={true} 
+          autoSpeed={0.5} 
+          autoIntensity={2.2} 
+          takeoverDuration={0.25} 
+          autoResumeDelay={3000} 
+          autoRampDuration={0.6} 
+        />
+        <Noise 
+          patternSize={250} 
+          patternScaleX={1} 
+          patternScaleY={1} 
+          patternRefreshInterval={2} 
+          patternAlpha={15} 
+        />
+      </div>
       
       <PageNav />
 
