@@ -7,7 +7,7 @@ import { TrendingUp, Activity, DollarSign, BarChart3, RefreshCw, Database, Zap, 
 import AnimatedText from '../components/AnimatedText';
 import CyberButton from '../components/CyberButton';
 import PageNav from '../components/PageNav';
-import TokenCard from '../components/TokenCard';
+import TokenList from '../components/TokenList';
 import ElectricBorder from '../components/ElectricBorder';
 import MetallicPaint from '../components/MetallicPaint';
 import LiquidEther from '../components/LiquidEther';
@@ -202,7 +202,7 @@ export default function FeedPage() {
           ))}
         </div>
 
-        {/* New Tokens */}
+        {/* New Tokens List */}
         <AnimatedText delay={0.4}>
           <div className="mb-16">
             <div className="flex items-center justify-between mb-6">
@@ -223,24 +223,27 @@ export default function FeedPage() {
               style={{ borderRadius: 16 }}
             >
               <div className="bg-gradient-to-br from-slate-900/80 to-slate-950/80 backdrop-blur-xl p-6 rounded-2xl">
-                <div className="relative">
-                  <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-slate-900 to-transparent z-10 pointer-events-none"></div>
-                  <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-900 to-transparent z-10 pointer-events-none"></div>
-                  
-                  <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory horizontal-scroll -mx-2 px-2">
-                    {data?.newTokens?.map((token, index) => (
-                      <div key={token.address} className="snap-start">
-                        <TokenCard token={token} index={index} />
-                      </div>
-                    ))}
-                    {(!data?.newTokens || data.newTokens.length === 0) && (
-                      <div className="w-full text-center py-12">
-                        <Activity className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                        <p className="text-slate-400 text-lg">Scanning for new tokens</p>
-                        <p className="text-slate-600 text-sm mt-2">AI analysis in progress</p>
-                      </div>
-                    )}
-                  </div>
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-4 mb-4 pb-3 border-b border-slate-800/50">
+                  <div className="col-span-1 text-xs text-slate-500 font-medium uppercase tracking-wider">#</div>
+                  <div className="col-span-4 text-xs text-slate-500 font-medium uppercase tracking-wider">Token</div>
+                  <div className="col-span-3 text-xs text-slate-500 font-medium uppercase tracking-wider text-center">Scores</div>
+                  <div className="col-span-2 text-xs text-slate-500 font-medium uppercase tracking-wider text-center">Market</div>
+                  <div className="col-span-2 text-xs text-slate-500 font-medium uppercase tracking-wider text-center">Actions</div>
+                </div>
+                
+                {/* Token List */}
+                <div className="space-y-2">
+                  {data?.newTokens?.map((token, index) => (
+                    <TokenList key={token.address} token={token} index={index} />
+                  ))}
+                  {(!data?.newTokens || data.newTokens.length === 0) && (
+                    <div className="w-full text-center py-12">
+                      <Activity className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-400 text-lg">Scanning for new tokens</p>
+                      <p className="text-slate-600 text-sm mt-2">AI analysis in progress</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </ElectricBorder>
