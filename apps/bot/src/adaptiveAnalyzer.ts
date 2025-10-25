@@ -93,70 +93,70 @@ class AdaptiveAnalyzer {
   generateAdaptiveCriteria(marketCondition: MarketCondition): AdaptiveCriteria {
     // Base criteria (more realistic values based on actual market data)
     let criteria: AdaptiveCriteria = {
-      minLiquidity: 10000,      // Lowered from 80k to 10k
+      minLiquidity: 5000,       // Lowered from 10k to 5k for more opportunities
       maxLiquidity: 10000000,
-      minMarketCap: 20000,      // Lowered from 1M to 20k
-      maxMarketCap: 144000000,  // Increased from 80M to 144M
-      maxPairAge: 72,           // Increased from 60h to 72h
-      minTransactions: 100,     // Lowered from 3000 to 100
-      minVolumeChange: -50,     // Allow negative changes
+      minMarketCap: 10000,      // Lowered from 20k to 10k
+      maxMarketCap: 300000000,  // Increased from 144M to 300M for more flexibility
+      maxPairAge: 96,           // Increased from 72h to 96h (4 days)
+      minTransactions: 50,      // Lowered from 100 to 50
+      minVolumeChange: -75,     // Allow more negative changes
       riskLevel: 'moderate'
     };
 
     // Adjust based on market volatility
     if (marketCondition.volatility === 'high') {
-      criteria.minLiquidity *= 1.5; // Require more liquidity in volatile markets
-      criteria.minTransactions *= 1.3; // More activity needed
-      criteria.maxPairAge *= 0.7; // Prefer newer pairs
+      criteria.minLiquidity *= 1.2; // Less strict multiplier
+      criteria.minTransactions *= 1.1; // Less strict multiplier
+      criteria.maxPairAge *= 0.8; // Less strict multiplier
       criteria.riskLevel = 'conservative';
     } else if (marketCondition.volatility === 'low') {
-      criteria.minLiquidity *= 0.8; // Can accept lower liquidity
-      criteria.maxMarketCap *= 1.2; // Allow larger caps
+      criteria.minLiquidity *= 0.7; // More aggressive reduction
+      criteria.maxMarketCap *= 1.3; // Allow even larger caps
       criteria.riskLevel = 'aggressive';
     }
 
     // Adjust based on market trend
     if (marketCondition.trend === 'bullish') {
-      criteria.maxMarketCap *= 1.5; // Allow higher caps in bull market
-      criteria.minVolumeChange = 20; // Require positive volume change
-      criteria.maxPairAge *= 1.2; // Can accept slightly older pairs
+      criteria.maxMarketCap *= 1.8; // Much more flexible in bull market
+      criteria.minVolumeChange = 5; // Require some positive volume change
+      criteria.maxPairAge *= 1.3; // Can accept older pairs
     } else if (marketCondition.trend === 'bearish') {
-      criteria.minLiquidity *= 1.3; // More conservative liquidity
-      criteria.maxMarketCap *= 0.7; // Focus on smaller caps
-      criteria.minTransactions *= 1.5; // Need more activity proof
+      criteria.minLiquidity *= 1.1; // Less conservative than before
+      criteria.maxMarketCap *= 0.8; // Focus on smaller caps
+      criteria.minTransactions *= 1.2; // Moderate increase
       criteria.riskLevel = 'conservative';
     }
 
     // Adjust based on volume conditions
     if (marketCondition.volume === 'low') {
-      criteria.minTransactions *= 0.8; // Lower transaction requirement
-      criteria.minLiquidity *= 1.2; // But higher liquidity needed
+      criteria.minTransactions *= 0.7; // Much lower transaction requirement
+      criteria.minLiquidity *= 1.1; // Slight increase in liquidity needed
     } else if (marketCondition.volume === 'high') {
-      criteria.minTransactions *= 1.2; // Higher transaction requirement
-      criteria.minVolumeChange = 10; // Require volume growth
+      criteria.minTransactions *= 1.1; // Moderate increase
+      criteria.minVolumeChange = 5; // Require some volume growth
     }
 
     // Adjust based on sentiment
     if (marketCondition.sentiment === 'positive') {
-      criteria.maxPairAge *= 1.3; // Can accept older pairs in positive sentiment
-      criteria.minVolumeChange = 15; // Require volume growth
+      criteria.maxPairAge *= 1.4; // More flexible with age
+      criteria.minVolumeChange = 10; // Require volume growth
     } else if (marketCondition.sentiment === 'negative') {
-      criteria.minLiquidity *= 1.4; // Much more conservative
-      criteria.maxPairAge *= 0.6; // Only very new pairs
+      criteria.minLiquidity *= 1.2; // More conservative but not extreme
+      criteria.maxPairAge *= 0.7; // Prefer newer pairs
       criteria.riskLevel = 'conservative';
     }
 
     // Adjust based on historical performance
     if (this.successRate < 0.3) {
-      // Poor performance - be more conservative
-      criteria.minLiquidity *= 1.5;
-      criteria.minTransactions *= 1.4;
-      criteria.maxMarketCap *= 0.8;
+      // Poor performance - be more conservative but not too strict
+      criteria.minLiquidity *= 1.2;
+      criteria.minTransactions *= 1.2;
+      criteria.maxMarketCap *= 0.9;
       criteria.riskLevel = 'conservative';
     } else if (this.successRate > 0.7) {
       // Good performance - can be more aggressive
-      criteria.minLiquidity *= 0.9;
-      criteria.maxMarketCap *= 1.3;
+      criteria.minLiquidity *= 0.8;
+      criteria.maxMarketCap *= 1.4;
       criteria.riskLevel = 'aggressive';
     }
 

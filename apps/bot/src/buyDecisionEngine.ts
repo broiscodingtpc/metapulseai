@@ -40,13 +40,13 @@ export class BuyDecisionEngine {
 
   constructor(criteria?: Partial<BuyDecisionCriteria>) {
     this.criteria = {
-      minAIScore: 70,
-      minMetaScore: 60,
-      minLiquidity: 10000, // $10K minimum liquidity
-      maxMarketCap: 1000000, // $1M max market cap for early entry
-      minVolume24h: 5000, // $5K minimum daily volume
-      maxPairAge: 24, // Max 24 hours old
-      minTransactions: 50, // Minimum transaction count
+      minAIScore: 45,           // Lowered from 70 to 45 to match actual token scores
+      minMetaScore: 35,         // Lowered from 60 to 35 for more realistic filtering
+      minLiquidity: 8000,       // Lowered from 10K to 8K for more opportunities
+      maxMarketCap: 2000000,    // Increased from 1M to 2M for more flexibility
+      minVolume24h: 3000,       // Lowered from 5K to 3K for more opportunities
+      maxPairAge: 48,           // Increased from 24h to 48h for more tokens
+      minTransactions: 30,      // Lowered from 50 to 30 for more opportunities
       riskTolerance: 'moderate',
       maxInvestmentPerToken: 1, // 1 SOL max per token
       ...criteria
@@ -82,7 +82,7 @@ export class BuyDecisionEngine {
     confidence += metaWeight * 0.1;
 
     // Final decision logic
-    shouldBuy = confidence >= 70 && this.passesBasicFilters(tokenScore, dexData);
+    shouldBuy = confidence >= 55 && this.passesBasicFilters(tokenScore, dexData);
 
     if (shouldBuy) {
       reasons.unshift(`✅ Strong buy signal with ${confidence.toFixed(1)}% confidence`);
@@ -115,9 +115,15 @@ export class BuyDecisionEngine {
     } else if (totalScore >= 65) {
       reasons.push(`📈 Good AI score: ${totalScore}/100`);
       return 65;
+    } else if (totalScore >= 50) {
+      reasons.push(`📊 Decent AI score: ${totalScore}/100`);
+      return 55;
+    } else if (totalScore >= 40) {
+      reasons.push(`⚡ Fair AI score: ${totalScore}/100`);
+      return 45;
     } else {
       reasons.push(`⚠️ Low AI score: ${totalScore}/100`);
-      return 30;
+      return 25;
     }
   }
 

@@ -616,20 +616,25 @@ export async function sendBuySignals(bot: TelegramBot, chatId: string | number) 
         // Handle missing transaction data - use volume as proxy for activity
         const transactions24h = (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0);
         const volume24h = parseFloat(pair.volume?.h24 || 0);
-        const hasActivity = transactions24h > 0 || volume24h > 1000; // Use volume as activity indicator
+        const hasActivity = transactions24h > 0 || volume24h > 500; // Lower volume threshold
         
         const volumeChange = parseFloat(pair.priceChange?.h24 || 0);
         
-        // Apply adaptive filters with more lenient transaction requirements
-        return (
-          liquidity >= adaptiveCriteria.minLiquidity &&
-          liquidity <= adaptiveCriteria.maxLiquidity &&
-          marketCap >= adaptiveCriteria.minMarketCap &&
-          marketCap <= adaptiveCriteria.maxMarketCap &&
-          pairAgeHours <= adaptiveCriteria.maxPairAge &&
-          (transactions24h >= adaptiveCriteria.minTransactions || hasActivity) && // Allow volume-based activity
-          volumeChange >= adaptiveCriteria.minVolumeChange
-        );
+        // Much more lenient filtering - prioritize finding tokens
+        const passesLiquidity = liquidity >= Math.min(adaptiveCriteria.minLiquidity, 2000); // Min 2K liquidity
+        const passesMarketCap = marketCap >= Math.min(adaptiveCriteria.minMarketCap, 5000) && 
+                               marketCap <= Math.max(adaptiveCriteria.maxMarketCap, 500000000); // 5K-500M range
+        const passesAge = pairAgeHours <= Math.max(adaptiveCriteria.maxPairAge, 168); // Max 7 days
+        const passesActivity = transactions24h >= Math.min(adaptiveCriteria.minTransactions, 10) || hasActivity; // Min 10 txns or volume
+        const passesVolumeChange = volumeChange >= Math.min(adaptiveCriteria.minVolumeChange, -90); // Allow up to -90% change
+        
+        // Debug logging for first few tokens
+        if (data.pairs.indexOf(pair) < 3) {
+          console.log(`🔍 Token ${pair.baseToken?.symbol}: L:${liquidity} MC:${marketCap} Age:${pairAgeHours.toFixed(1)}h Txns:${transactions24h} Vol:${volume24h} Change:${volumeChange}%`);
+          console.log(`   Passes: Liq:${passesLiquidity} MC:${passesMarketCap} Age:${passesAge} Activity:${passesActivity} Change:${passesVolumeChange}`);
+        }
+        
+        return passesLiquidity && passesMarketCap && passesAge && passesActivity && passesVolumeChange;
       })
       .map((pair: any) => ({
         address: pair.baseToken?.address || '',
