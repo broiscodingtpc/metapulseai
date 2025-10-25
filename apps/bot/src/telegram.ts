@@ -594,19 +594,75 @@ export async function sendBuySignals(bot: TelegramBot, chatId: string | number) 
     const adaptiveCriteria = adaptiveAnalyzer.generateAdaptiveCriteria(marketCondition);
     console.log('🎯 Adaptive criteria:', adaptiveCriteria);
     
-    // Step 3: Fetch trending Solana tokens from DexScreener
-    const response = await fetch('https://api.dexscreener.com/latest/dex/search?q=solana&rankBy=trendingScoreH24&order=desc');
-    const data = await response.json();
+    // Step 3: Fetch latest boosted tokens from DexScreener (these are usually new/trending tokens)
+    const response = await fetch('https://api.dexscreener.com/token-boosts/latest/v1');
+    const boostData = await response.json();
     
-    if (!data.pairs || data.pairs.length === 0) {
-      console.log('⚠️ No pairs data available from DexScreener');
-      return;
+    if (!boostData || boostData.length === 0) {
+      console.log('⚠️ No boosted tokens available, falling back to search');
+      // Fallback to search for new meme tokens
+      const fallbackResponse = await fetch('https://api.dexscreener.com/latest/dex/search?q=pump.fun');
+      const fallbackData = await fallbackResponse.json();
+      
+      if (!fallbackData.pairs || fallbackData.pairs.length === 0) {
+        console.log('⚠️ No pairs data available from DexScreener');
+        return;
+      }
+      
+      // Use fallback data
+      var data = fallbackData;
+    } else {
+      // Get pair details for boosted tokens
+      const solanaBoosts = boostData.filter((boost: any) => boost.chainId === 'solana');
+      if (solanaBoosts.length === 0) {
+        console.log('⚠️ No Solana boosted tokens found');
+        return;
+      }
+      
+      // Fetch pair data for each boosted token
+      const pairPromises = solanaBoosts.slice(0, 20).map(async (boost: any) => {
+        try {
+          const pairResponse = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${boost.tokenAddress}`);
+          const pairData = await pairResponse.json();
+          return pairData.pairs || [];
+        } catch (error) {
+          console.warn(`Failed to fetch pair data for ${boost.tokenAddress}:`, error);
+          return [];
+        }
+      });
+      
+      const allPairs = await Promise.all(pairPromises);
+      const flatPairs = allPairs.flat();
+      
+      if (flatPairs.length === 0) {
+        console.log('⚠️ No pair data found for boosted tokens');
+        return;
+      }
+      
+      var data = { pairs: flatPairs };
     }
 
-    // Step 4: Filter tokens using adaptive criteria
+    // Step 4: Filter tokens using adaptive criteria and exclude major tokens
     const now = Date.now();
+    const majorTokens = ['SOL', 'USDC', 'USDT', 'BTC', 'ETH', 'WBTC', 'WETH', 'BONK', 'JUP', 'WIF', 'PYTH', 'JTO', 'RNDR', 'RAY', 'ORCA'];
+    
     const filteredTokens: BuySignalToken[] = data.pairs
       .filter((pair: any) => {
+        // Exclude major tokens and stablecoins (check both name and symbol)
+        const symbol = pair.baseToken?.symbol?.toUpperCase() || '';
+        const name = pair.baseToken?.name?.toUpperCase() || '';
+        
+        if (majorTokens.includes(symbol) || name.includes('SOLANA') || name.includes('BITCOIN') || name.includes('ETHEREUM')) {
+          console.log(`🚫 Excluding major token: ${symbol} (${name})`);
+          return false;
+        }
+        
+        // Exclude if quote token is not SOL or USDC (we want SPL tokens paired with these)
+        const quoteSymbol = pair.quoteToken?.symbol?.toUpperCase() || '';
+        if (!['SOL', 'USDC'].includes(quoteSymbol)) {
+          return false;
+        }
+        
         // Extract data with better handling of missing transaction data
         const liquidity = parseFloat(pair.liquidity?.usd || 0);
         const marketCap = parseFloat(pair.fdv || pair.marketCap || 0);
@@ -630,7 +686,7 @@ export async function sendBuySignals(bot: TelegramBot, chatId: string | number) 
         
         // Debug logging for first few tokens
         if (data.pairs.indexOf(pair) < 3) {
-          console.log(`🔍 Token ${pair.baseToken?.symbol}: L:${liquidity} MC:${marketCap} Age:${pairAgeHours.toFixed(1)}h Txns:${transactions24h} Vol:${volume24h} Change:${volumeChange}%`);
+          console.log(`🔍 Token ${symbol}: L:${liquidity} MC:${marketCap} Age:${pairAgeHours.toFixed(1)}h Txns:${transactions24h} Vol:${volume24h} Change:${volumeChange}%`);
           console.log(`   Passes: Liq:${passesLiquidity} MC:${passesMarketCap} Age:${passesAge} Activity:${passesActivity} Change:${passesVolumeChange}`);
         }
         
