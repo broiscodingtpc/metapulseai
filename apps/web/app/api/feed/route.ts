@@ -6,17 +6,24 @@ const STALE_WHILE_REVALIDATE = 30; // 30 seconds
 
 export async function GET() {
   try {
-    // Try to fetch from bot API
-    const botPort = process.env.BOT_PORT || 3001;
-    const botUrl = `http://localhost:${botPort}/feed.json`;
+    // Try to fetch from bot API with direct connection
+    const botUrl = `http://127.0.0.1:3001/feed.json`;
     
     try {
+      console.log(`Attempting to fetch from bot at: ${botUrl}`);
+      
       const botResponse = await fetch(botUrl, {
-        next: { revalidate: CACHE_MAX_AGE } // Cache for 10 seconds
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'MetaPulse-Web/1.0'
+        },
+        cache: 'no-store'
       });
       
       if (botResponse.ok) {
         const botData = await botResponse.json();
+        console.log(`Successfully fetched bot data with ${botData.tokens?.length || 0} tokens`);
         
         // Transform bot data to website format
         const transformedTokens = (botData.tokens || []).map((token: any, index: number) => {
@@ -76,7 +83,8 @@ export async function GET() {
         return response;
       }
     } catch (botError) {
-      console.log('Bot API not available, using fallback');
+      console.log('Bot API not available:', botError);
+      console.log('Using fallback data instead');
     }
     
     // Fallback response

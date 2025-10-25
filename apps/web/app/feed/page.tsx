@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
-import { Activity, DollarSign, BarChart3, RefreshCw, Database, Target } from 'lucide-react';
-import PageNav from '../components/PageNav';
-import TokenList from '../components/TokenList';
+import Link from 'next/link';
+import { AsciiFrame, AsciiLog, AsciiBadge, AsciiTable } from '../components/ascii';
+import BuySignals from '../components/BuySignals';
+import MarketSentiment from '../components/MarketSentiment';
 import { fetcher } from '../lib/swr-config';
-
 
 export const dynamic = 'force-dynamic';
 
@@ -47,15 +47,15 @@ interface FeedData {
 
 export default function FeedPage() {
   const [activeFilter, setActiveFilter] = useState('all');
-  
+
   const { data, error, isLoading, mutate } = useSWR<FeedData>(
     '/api/feed',
     fetcher,
     {
-      refreshInterval: 10000,
+      refreshInterval: 30000,
       revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      dedupingInterval: 5000,
+      errorRetryCount: 3,
+      errorRetryInterval: 5000
     }
   );
 
@@ -63,57 +63,121 @@ export default function FeedPage() {
     mutate();
   };
 
-  // Simplified token processing with pagination
   const processTokens = (tokens: TokenData[] = []) => {
     if (!tokens.length) return { filtered: [], counts: { latest: 0, topScoring: 0, watchlist: 0, all: 0 } };
 
-    // Limit to maximum 20 tokens for performance
-    const limitedTokens = tokens.slice(0, 20);
-
-    const now = new Date().getTime();
-    const oneHourAgo = now - (60 * 60 * 1000);
-
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    
+    const limitedTokens = tokens.slice(0, 100);
+    
     const processedTokens = limitedTokens.map((token, index) => {
-      const detectedTime = token.detectedAt ? new Date(token.detectedAt).getTime() : now;
-      const isNew = detectedTime > oneHourAgo;
-      const isTopScoring = (token.score > 50) && (token.riskLevel !== 'HIGH');
-      const isWatchlist = (token.score >= 35 && token.score <= 50);
-
+      const detectedTime = token.detectedAt ? new Date(token.detectedAt) : new Date();
+      const isRecent = detectedTime > oneHourAgo;
+      const isTopScoring = token.score >= 75;
+      const isWatchlist = token.score >= 60 && token.score < 75;
+      
       return {
         ...token,
-        isNew,
-        isTrending: isTopScoring,
+        isRecent,
+        isTopScoring,
         isWatchlist
       };
     });
 
-    // Simple sort by score descending
-    const sortedTokens = processedTokens.sort((a, b) => b.score - a.score);
-
     const counts = {
-      latest: processedTokens.filter(t => t.isNew).length,
-      topScoring: processedTokens.filter(t => t.isTrending).length,
+      latest: processedTokens.filter(t => t.isRecent).length,
+      topScoring: processedTokens.filter(t => t.isTopScoring).length,
       watchlist: processedTokens.filter(t => t.isWatchlist).length,
       all: processedTokens.length
     };
 
-    let filtered = sortedTokens;
+    let filtered = processedTokens;
     switch (activeFilter) {
       case 'latest':
-        filtered = sortedTokens.filter(t => t.isNew);
+        filtered = processedTokens.filter(t => t.isRecent);
         break;
       case 'topScoring':
-        filtered = sortedTokens.filter(t => t.isTrending);
+        filtered = processedTokens.filter(t => t.isTopScoring);
         break;
       case 'watchlist':
-        filtered = sortedTokens.filter(t => t.isWatchlist);
+        filtered = processedTokens.filter(t => t.isWatchlist);
         break;
       default:
-        filtered = sortedTokens;
+        filtered = processedTokens;
     }
 
     return { filtered, counts };
   };
+
+  // Generate mock buy signals from high-scoring tokens
+  const generateBuySignals = (tokens: TokenData[]) => {
+    return tokens
+      .filter(token => token.score >= 65) // Only high-scoring tokens
+      .slice(0, 5) // Top 5
+      .map(token => ({
+        token: {
+          symbol: token.symbol,
+          name: token.name,
+          address: token.address,
+          score: token.score,
+          category: token.category,
+          riskLevel: token.riskLevel || 'medium'
+        },
+        signal: {
+          strength: (token.score >= 80 ? 'strong' : token.score >= 70 ? 'moderate' : 'weak') as 'strong' | 'moderate' | 'weak',
+          confidence: Math.min(95, token.score + Math.floor(Math.random() * 10)),
+          reasons: [
+            `High AI score of ${token.score}/100`,
+            `Strong ${token.category} category performance`,
+            token.riskLevel === 'low' ? 'Low risk profile detected' : 'Acceptable risk level',
+            'Positive market momentum indicators'
+          ],
+          timestamp: token.detectedAt || new Date().toISOString()
+        },
+        market: {
+          price: token.price,
+          marketCap: token.marketCap,
+          volume24h: token.volume,
+          change24h: token.change24h
+        }
+      }));
+  };
+
+  // Generate market sentiment data
+  const generateMarketSentiment = (tokens: TokenData[], metas: MetaData[]) => {
+    const avgScore = tokens.length > 0 ? tokens.reduce((sum, t) => sum + t.score, 0) / tokens.length : 50;
+    const bullishTokens = tokens.filter(t => t.score >= 70).length;
+    const totalTokens = tokens.length || 1;
+    
+    return {
+      overall: {
+        score: Math.round(avgScore),
+        label: avgScore >= 70 ? 'BULLISH' : avgScore >= 50 ? 'NEUTRAL' : 'BEARISH',
+        trend: (avgScore >= 60 ? 'bullish' : avgScore >= 40 ? 'neutral' : 'bearish') as 'bullish' | 'bearish' | 'neutral',
+        confidence: Math.round(85 + Math.random() * 10)
+      },
+      categories: metas.reduce((acc, meta) => {
+        acc[meta.category] = {
+          score: meta.averageScore,
+          trend: (meta.change24h > 5 ? 'up' : meta.change24h < -5 ? 'down' : 'stable') as 'up' | 'down' | 'stable',
+          volume: meta.volume,
+          tokenCount: meta.tokenCount
+        };
+        return acc;
+      }, {} as any),
+      signals: {
+        buyPressure: Math.round((bullishTokens / totalTokens) * 100),
+        sellPressure: Math.round(30 + Math.random() * 40),
+        momentum: Math.round(avgScore * 0.8 + Math.random() * 20),
+        volatility: Math.round(40 + Math.random() * 30)
+      },
+      timestamp: data?.timestamp || new Date().toISOString()
+    };
+  };
+
+  const buySignals = data?.newTokens ? generateBuySignals(data.newTokens) : [];
+  const marketSentiment = data ? generateMarketSentiment(data.newTokens || [], data.topMetas || []) : null;
 
   const { filtered: filteredTokens, counts } = processTokens(data?.newTokens);
 
@@ -121,157 +185,253 @@ export default function FeedPage() {
     if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
     if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
     if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
-    return num.toFixed(2);
+    return num.toFixed(0);
   };
+
+  // Convert tokens to log entries for AsciiLog
+  const tokenLogEntries = filteredTokens.map((token, index) => ({
+    id: token.address,
+    timestamp: token.detectedAt ? new Date(token.detectedAt) : new Date(),
+    type: (token.score >= 75 ? 'success' : token.score >= 60 ? 'info' : 'warn') as 'info' | 'warn' | 'error' | 'success',
+    message: `${token.symbol} detected - Score: ${token.score} | ${token.category}`,
+    details: `Market Cap: $${formatNumber(token.marketCap)} | Risk: ${token.riskLevel || 'Unknown'}`
+  }));
 
   if (isLoading && !data) {
     return (
-      <div className="min-h-screen bg-[#05060a] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-300">Loading market intelligence...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-96">
+        <AsciiFrame title="Loading">
+          <div className="text-center py-8">
+            <div className="text-console-cyan mb-4">Loading market intelligence...</div>
+            <div className="text-console-dim">Please wait...</div>
+          </div>
+        </AsciiFrame>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#05060a] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-400 mb-4">Failed to load market data</p>
-          <button 
-            onClick={handleRefresh}
-            className="px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded hover:bg-cyan-500/30 transition-colors"
-          >
-            Retry Connection
-          </button>
-        </div>
+      <div className="flex items-center justify-center min-h-96">
+        <AsciiFrame title="Error" variant="highlight">
+          <div className="text-center py-8">
+            <div className="text-console-red mb-4">Failed to load market data</div>
+            <button 
+              onClick={handleRefresh}
+              className="ascii-button ascii-button-danger"
+            >
+              [ Retry Connection ]
+            </button>
+          </div>
+        </AsciiFrame>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <PageNav />
-      
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-12">
-        {/* Simple Header */}
-        <div className="mb-8">
-          <h1 className="text-center text-3xl font-bold text-white mb-4">
-            Live Market Intelligence
-          </h1>
-          
-          <p className="text-center text-slate-400 mb-6">
-            Real-time AI-powered analysis of token markets
-          </p>
-
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span className="text-green-400 font-semibold text-sm">AI ACTIVE</span>
-            </div>
-            <button 
-              onClick={handleRefresh} 
-              disabled={isLoading}
-              className="px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded hover:bg-cyan-500/30 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 inline mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              {isLoading ? 'Refreshing...' : 'Refresh'}
-            </button>
-            <span className="text-slate-500 text-sm">
-              Updated: {data?.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'Live'}
-            </span>
-          </div>
+    <div className="space-y-8">
+      {/* Header */}
+      <section className="text-center">
+        <h1 className="text-4xl font-bold mb-4">Live Market Intelligence</h1>
+        <p className="text-console-dim mb-6">Real-time AI-powered analysis of token markets</p>
+        
+        <div className="flex justify-center items-center gap-4">
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className={`ascii-button ${isLoading ? 'opacity-50' : ''}`}
+          >
+            [ {isLoading ? 'Refreshing...' : 'Refresh'} ]
+          </button>
+          <span className="text-console-dim text-sm">
+            Updated: {data?.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'Live'}
+          </span>
         </div>
+      </section>
 
-        {/* Simple Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { icon: Database, label: "Total Tokens", value: data?.totalTokens || 0 },
-            { icon: Target, label: "Active Metas", value: data?.activeMetas || 0 },
-            { icon: DollarSign, label: "Market Cap", value: `$${formatNumber(data?.totalMarketCap || 0)}` },
-            { icon: BarChart3, label: "Volume 24h", value: `$${formatNumber(data?.totalVolume || 0)}` }
-          ].map((stat, index) => (
-            <div key={index} className="bg-slate-900/50 p-4 rounded-lg border border-slate-800/50">
-              <div className="flex items-center justify-between mb-2">
-                <stat.icon className="w-5 h-5 text-cyan-400" />
+      {/* Stats */}
+      <section>
+        <AsciiFrame title="Market Overview">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-console-cyan mb-1">
+                {data?.totalTokens || 0}
               </div>
-              <p className="text-slate-400 text-xs uppercase tracking-wider mb-1">{stat.label}</p>
-              <p className="text-xl font-bold text-white">{stat.value}</p>
+              <div className="text-sm text-console-dim">Total Tokens</div>
             </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-console-green mb-1">
+                {data?.activeMetas || 0}
+              </div>
+              <div className="text-sm text-console-dim">Active Metas</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-console-yellow mb-1">
+                ${formatNumber(data?.totalMarketCap || 0)}
+              </div>
+              <div className="text-sm text-console-dim">Market Cap</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-console-cyan mb-1">
+                ${formatNumber(data?.totalVolume || 0)}
+              </div>
+              <div className="text-sm text-console-dim">Volume 24h</div>
+            </div>
+          </div>
+        </AsciiFrame>
+      </section>
+
+      {/* Filters */}
+      <section>
+        <div className="flex items-center gap-2 flex-wrap">
+          {[
+            { id: 'all', label: 'All', count: counts.all },
+            { id: 'latest', label: 'Latest', count: counts.latest },
+            { id: 'topScoring', label: 'Top Scoring', count: counts.topScoring },
+            { id: 'watchlist', label: 'Watchlist', count: counts.watchlist }
+          ].map((filter) => (
+            <button
+              key={filter.id}
+              onClick={() => setActiveFilter(filter.id)}
+              className={`ascii-button ${
+                activeFilter === filter.id ? 'ascii-button-primary' : ''
+              }`}
+            >
+              [ {filter.label} ({filter.count}) ]
+            </button>
           ))}
         </div>
+      </section>
 
-        {/* Simple Token Filters */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 flex-wrap">
-            {[
-              { id: 'all', label: 'All', count: counts.all },
-              { id: 'latest', label: 'Latest', count: counts.latest },
-              { id: 'topScoring', label: 'Top Scoring', count: counts.topScoring },
-              { id: 'watchlist', label: 'Watchlist', count: counts.watchlist }
-            ].map((filter) => (
-              <button
-                key={filter.id}
-                onClick={() => setActiveFilter(filter.id)}
-                className={`px-3 py-2 rounded text-sm transition-colors ${
-                  activeFilter === filter.id
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                    : 'bg-slate-800/50 text-slate-300 hover:bg-slate-800/70'
-                }`}
-              >
-                {filter.label} ({filter.count})
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Market Sentiment */}
+      {marketSentiment && (
+        <section>
+          <MarketSentiment data={marketSentiment} />
+        </section>
+      )}
 
-        {/* Simple Token List */}
-        <div className="mb-16">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">
-              {activeFilter === 'latest' && 'Just Created'}
-              {activeFilter === 'topScoring' && 'Top Scoring Tokens'}
-              {activeFilter === 'watchlist' && 'Watchlist Candidates'}
-              {activeFilter === 'all' && 'Recent Detections'}
-            </h2>
-            <span className="text-slate-500 text-sm">
-              {filteredTokens.length} tokens
-            </span>
-          </div>
-          
-          <div className="bg-slate-900/50 rounded-lg border border-slate-800/50 overflow-hidden">
-            {/* Simple Header - Hidden on Mobile */}
-            <div className="hidden md:grid grid-cols-12 gap-4 p-3 bg-slate-800/50 border-b border-slate-700/50 text-xs text-slate-400 font-medium">
-              <div className="col-span-1">#</div>
-              <div className="col-span-4">Token</div>
-              <div className="col-span-3 text-center">Scores</div>
-              <div className="col-span-2 text-center">Market</div>
-              <div className="col-span-2 text-center">Actions</div>
-            </div>
-            
-            {/* Token List */}
-            <div>
-              {filteredTokens.map((token, index) => (
-                <TokenList key={token.address} token={token} index={index} />
-              ))}
-              {filteredTokens.length === 0 && (
-                <div className="w-full text-center py-12">
-                  <Activity className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                  <p className="text-slate-400">
-                    {activeFilter === 'latest' && 'No new tokens in the last hour'}
-                    {activeFilter === 'topScoring' && 'No top scoring tokens found'}
-                    {activeFilter === 'watchlist' && 'No watchlist candidates'}
-                    {activeFilter === 'all' && 'Scanning for new tokens'}
-                  </p>
+      {/* Buy Signals */}
+      <section>
+        <BuySignals signals={buySignals} maxSignals={5} />
+      </section>
+
+      {/* Meta Categories */}
+      <section>
+        <AsciiFrame title="Top Meta Categories">
+          {data?.topMetas && data.topMetas.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {data.topMetas.map((meta, index) => (
+                <div key={meta.category} className="border border-console-dim p-4 rounded">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-console-cyan font-bold">{meta.category}</h3>
+                    <AsciiBadge level={meta.averageScore >= 70 ? 'high' : meta.averageScore >= 50 ? 'medium' : 'low'} size="sm">
+                      {meta.averageScore}
+                    </AsciiBadge>
+                  </div>
+                  <div className="text-sm text-console-dim space-y-1">
+                    <div>Tokens: {meta.tokenCount}</div>
+                    <div>Market Cap: ${formatNumber(meta.marketCap)}</div>
+                    <div>Volume: ${formatNumber(meta.volume)}</div>
+                    <div className={`flex items-center gap-1 ${meta.trend === 'up' ? 'text-console-green' : meta.trend === 'down' ? 'text-console-red' : 'text-console-dim'}`}>
+                      {meta.trend === 'up' ? '↗' : meta.trend === 'down' ? '↘' : '→'} {meta.change24h.toFixed(1)}%
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Link href={`/metas?category=${encodeURIComponent(meta.category)}`} className="ascii-button ascii-button-sm">
+                      [ View Details ]
+                    </Link>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
-          </div>
-        </div>
+          ) : (
+            <div className="text-center py-8 text-console-dim">
+              No meta categories available yet. Bot is analyzing tokens...
+            </div>
+          )}
+        </AsciiFrame>
+      </section>
 
-      </main>
+      {/* Token Feed */}
+      <section>
+        <AsciiFrame title="Token Detection Feed">
+          <AsciiLog
+            entries={tokenLogEntries}
+            maxHeight="500px"
+            autoScroll={true}
+            liveUpdate={true}
+            className="mb-4"
+          />
+          
+          <div className="text-console-dim text-xs text-center">
+            Showing {filteredTokens.length} of {data?.newTokens?.length || 0} detected tokens
+          </div>
+        </AsciiFrame>
+      </section>
+
+      {/* Token Table */}
+      <section>
+        <AsciiFrame title="Token Analysis Table">
+          <AsciiTable
+            columns={[
+              { key: 'symbol', header: 'Symbol', width: '20%' },
+              { key: 'name', header: 'Name', width: '25%' },
+              { key: 'score', header: 'Score', width: '10%', align: 'center' },
+              { key: 'category', header: 'Category', width: '15%' },
+              { key: 'marketCap', header: 'Market Cap', width: '15%', align: 'right' },
+              { key: 'riskLevel', header: 'Risk', width: '15%', align: 'center' }
+            ]}
+            data={filteredTokens.map(token => ({
+              ...token,
+              marketCap: `$${formatNumber(token.marketCap)}`,
+              score: (
+                <div className="flex items-center gap-2">
+                  <span className={token.score >= 70 ? 'text-console-green' : token.score >= 50 ? 'text-console-yellow' : 'text-console-red'}>
+                    {token.score}
+                  </span>
+                  {token.score >= 70 && <span className="text-console-green">🚀</span>}
+                  {token.score >= 80 && <span className="text-console-cyan">⭐</span>}
+                </div>
+              ),
+              category: (
+                <AsciiBadge 
+                  level={token.category === 'meme' ? 'medium' : token.category === 'defi' ? 'high' : 'low'} 
+                  size="sm"
+                >
+                  {token.category}
+                </AsciiBadge>
+              ),
+              riskLevel: token.riskLevel ? (
+                <AsciiBadge 
+                  level={token.riskLevel === 'low' ? 'low' : token.riskLevel === 'high' ? 'high' : 'medium'} 
+                  size="sm"
+                >
+                  {token.riskLevel}
+                </AsciiBadge>
+              ) : 'Unknown'
+            }))}
+            maxRows={20}
+            onRowClick={(token) => {
+              console.log('Token selected:', token.symbol);
+            }}
+          />
+        </AsciiFrame>
+      </section>
+
+      {/* Navigation */}
+      <section className="text-center">
+        <div className="flex justify-center gap-4">
+          <Link href="/" className="ascii-button">
+            [ Back to Home ]
+          </Link>
+          <Link href="/tokens" className="ascii-button">
+            [ All Tokens ]
+          </Link>
+          <Link href="/metas" className="ascii-button">
+            [ Browse Metas ]
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

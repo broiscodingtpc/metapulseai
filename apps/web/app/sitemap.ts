@@ -29,12 +29,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'hourly',
       priority: 0.8,
     },
-    {
-      url: `${baseUrl}/presale`,
-      lastModified: currentDate,
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
+
   ];
 }
 

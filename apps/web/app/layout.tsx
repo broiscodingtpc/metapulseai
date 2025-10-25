@@ -1,42 +1,18 @@
 import type { Metadata } from 'next';
-import { Space_Grotesk, Outfit, Rajdhani } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
-import { ThemeProvider } from './context/ThemeContext';
-import ServiceWorkerRegistration from './components/ServiceWorkerRegistration';
-import ToastProvider from './components/ToastProvider';
-import Logo from './components/Logo';
-import CyberButton from './components/CyberButton';
+import NotificationSystem from './components/NotificationSystem';
 
-// Professional DApp fonts with next/font
-const spaceGrotesk = Space_Grotesk({ 
-  subsets: ['latin'],
-  variable: '--font-space-grotesk',
-  display: 'swap',
-  weight: ['300', '400', '500', '600', '700'],
-});
-
-const outfit = Outfit({ 
-  subsets: ['latin'],
-  variable: '--font-outfit',
-  display: 'swap',
-  weight: ['300', '400', '500', '600', '700', '800'],
-});
-
-const rajdhani = Rajdhani({ 
-  subsets: ['latin'],
-  variable: '--font-rajdhani',
-  display: 'swap',
-  weight: ['300', '400', '500', '600', '700'],
-});
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'MetaPulse AI Bot — $PULSEAI',
-  description: 'Feel the pulse before the market does. AI-powered market intelligence system built on Solana.',
-  keywords: 'AI, cryptocurrency, Solana, trading, market intelligence, blockchain',
-  authors: [{ name: 'MetaPulse AI Bot' }],
+  title: 'MetaPulse AI Bot - Feel the Pulse Before the Market Does',
+  description: 'AI-powered cryptocurrency market intelligence with real-time analytics, buy signals, and meta trend detection.',
+  keywords: 'cryptocurrency, AI, trading bot, market analysis, Solana, DeFi, buy signals',
+  authors: [{ name: 'MetaPulse Team' }],
   openGraph: {
-    title: 'MetaPulse AI Bot — $PULSEAI',
-    description: 'Feel the pulse before the market does.',
+    title: 'MetaPulse AI Bot',
+    description: 'AI-powered cryptocurrency market intelligence with real-time analytics',
     type: 'website',
   },
 };
@@ -47,29 +23,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${outfit.variable} ${rajdhani.variable}`} suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#0a0b0f" />
-        {/* Prevent FOUC (Flash of Unstyled Content) */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                const theme = localStorage.getItem('theme') || 'dark';
-                document.documentElement.classList.toggle('dark', theme === 'dark');
-              })();
-            `,
-          }}
-        />
-      </head>
-      <body className={`bg-light-bg dark:bg-dark-950 text-light-text-high dark:text-white antialiased transition-colors duration-300 ${outfit.className}`}>
-        <ServiceWorkerRegistration />
-        <ThemeProvider>
-          <ToastProvider />
+    <html lang="en">
+      <body className={`${inter.className} bg-console-bg text-console-fg min-h-screen`}>
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
           {children}
-        </ThemeProvider>
+        </div>
+        <NotificationSystem />
       </body>
     </html>
   );

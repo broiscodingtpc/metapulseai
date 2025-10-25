@@ -1,49 +1,57 @@
 'use client';
 
-import { WifiOff } from 'lucide-react';
-import CyberCard from '../components/CyberCard';
-import CyberButton from '../components/CyberButton';
-import PageNav from '../components/PageNav';
+import Link from 'next/link';
+import { AsciiFrame } from '../components/ascii';
 
 export default function OfflinePage() {
-  const handleRetry = () => {
-    window.location.reload();
-  };
-
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-950 transition-colors duration-300">
-      <PageNav />
-      
-      <div className="flex items-center justify-center min-h-[80vh] px-6">
-        <CyberCard className="max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <WifiOff className="w-10 h-10 text-red-400" />
+    <div className="space-y-8">
+      <section className="text-center">
+        <h1 className="text-4xl font-bold mb-4">Offline Mode</h1>
+        <p className="text-console-dim mb-6">You are currently offline</p>
+      </section>
+
+      <section>
+        <AsciiFrame title="Connection Status" variant="highlight">
+          <div className="text-center py-8">
+            <div className="text-console-red mb-4 text-2xl font-bold">
+              CONNECTION LOST
+            </div>
+            <div className="text-console-dim mb-6">
+              Please check your internet connection and try again.
+            </div>
+            <div className="space-y-4">
+              <button 
+                onClick={() => window.location.reload()}
+                className="ascii-button ascii-button-primary"
+              >
+                [ Retry Connection ]
+              </button>
+              <div>
+                <Link href="/" className="ascii-button">
+                  [ Back to Home ]
+                </Link>
+              </div>
+            </div>
           </div>
-          
-          <h1 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">
-            You're Offline
-          </h1>
-          
-          <p className="text-slate-600 dark:text-slate-300 mb-6">
-            It looks like you've lost your internet connection. 
-            Please check your connection and try again.
-          </p>
-          
-          <div className="space-y-3">
-            <CyberButton 
-              onClick={handleRetry} 
-              variant="primary" 
-              className="w-full"
-            >
-              Try Again
-            </CyberButton>
-            
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Some cached content may still be available
-            </p>
+        </AsciiFrame>
+      </section>
+
+      <section>
+        <AsciiFrame title="Offline Features">
+          <div className="space-y-4">
+            <div className="text-console-fg font-bold mb-4">
+              Available while offline:
+            </div>
+            <ul className="space-y-2 text-console-dim">
+              <li>• View cached token data</li>
+              <li>• Access saved watchlists</li>
+              <li>• Browse offline documentation</li>
+              <li>• Review historical analysis</li>
+            </ul>
           </div>
-        </CyberCard>
-      </div>
+        </AsciiFrame>
+      </section>
     </div>
   );
 }

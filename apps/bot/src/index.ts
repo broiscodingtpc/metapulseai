@@ -5,7 +5,8 @@ import { Rollups } from "./rollups.js";
 import { techScore, totalScore, analyzeRisk, getRiskEmoji } from "@metapulse/core";
 import { labelMeta } from "./metas.js";
 import { makeBot, sendDigest, setupBotCommands, sendBuySignals } from "./telegram.js";
-import { schedule } from "./scheduler.js";
+import { BuyDecisionEngine } from "./buyDecisionEngine.js";
+import { schedule, SignalScheduler } from "./scheduler.js";
 import fs from "node:fs";
 import path from "node:path";
 import http from "node:http";
@@ -28,6 +29,8 @@ const SCORES = new Map<string, {
   riskLevel?: string;
   riskScore?: number;
   riskFlags?: string[];
+  risk?: string[];
+  analyzedAt?: string;
 }>();
 
 // Make variables globally accessible for Telegram bot
@@ -97,16 +100,60 @@ connectPumpPortal(cfg.apiKey, async (msg: any) => {
     });
     
     const total = totalScore(tech.score, meta.metaScore);
+    
+    // Make buy decision using the engine
+    try {
+      const buyDecision = await buyDecisionEngine.makeBuyDecision(
+        {
+          total,
+          tech: tech.score,
+          meta: meta.metaScore,
+          metaScore: meta.metaScore,
+          label: meta.label,
+          risk: risk.flags,
+          analyzedAt: new Date().toISOString()
+        },
+        null, // No DexScreener data available at token creation
+        null  // No market conditions data
+      );
+      
+      if (buyDecision.shouldBuy) {
+        console.log(`🚀 BUY SIGNAL: ${m.symbol} - Confidence: ${buyDecision.confidence}%`);
+        console.log(`💰 Suggested amount: ${buyDecision.suggestedAmount} SOL`);
+        console.log(`📊 Reasons: ${buyDecision.reasons.join(', ')}`);
+        
+        // Send buy signal to Telegram
+        if (cfg.telegramChatId) {
+          await bot.sendMessage(cfg.telegramChatId, 
+            `🚀 **AUTOMATED BUY SIGNAL**\n\n` +
+            `**Token:** ${m.name} (${m.symbol})\n` +
+            `**Confidence:** ${buyDecision.confidence}%\n` +
+            `**Risk Level:** ${buyDecision.riskLevel}\n` +
+            `**Suggested Amount:** ${buyDecision.suggestedAmount} SOL\n` +
+            `**Stop Loss:** ${buyDecision.stopLoss}%\n` +
+            `**Take Profit:** ${buyDecision.takeProfit}%\n\n` +
+            `**Analysis:**\n${buyDecision.reasons.join('\n')}\n\n` +
+            `**Address:** \`${m.mint}\`\n\n` +
+            `⚠️ *Automated signal - DYOR before trading*`,
+            { parse_mode: 'Markdown' }
+          );
+        }
+      }
+    } catch (buyError) {
+      console.log(`❌ Buy decision error for ${m.symbol}:`, buyError);
+    }
+
     SCORES.set(m.mint, { 
-      tech: tech.score, 
-      meta: meta.metaScore, 
-      total, 
+      tech: tech.score,
+      meta: meta.metaScore,
+      total,
       label: meta.label,
       metaScore: meta.metaScore,
       reason: meta.reason,
       riskLevel: risk.riskLevel,
       riskScore: risk.score,
-      riskFlags: risk.flags
+      riskFlags: risk.flags,
+      analyzedAt: new Date().toISOString()
     });
     
     // Update analyzedAt timestamp
@@ -165,6 +212,23 @@ const bot = makeBot(cfg.telegramToken);
 
 // Setup interactive menu and commands
 setupBotCommands(bot);
+
+// Initialize signal scheduler for automated tasks
+const signalScheduler = new SignalScheduler(bot);
+signalScheduler.start();
+
+// Initialize buy decision engine
+const buyDecisionEngine = new BuyDecisionEngine({
+  minAIScore: 70,
+  minMetaScore: 60,
+  minLiquidity: 15000,
+  maxMarketCap: 2000000,
+  minVolume24h: 10000,
+  maxPairAge: 48,
+  minTransactions: 30,
+  riskTolerance: 'moderate',
+  maxInvestmentPerToken: 0.5 // 0.5 SOL max per token
+});
 
 async function makeFeedAndNotify() {
   const mints = Array.from(SCORES.keys());
@@ -256,7 +320,7 @@ setTimeout(() => {
 console.log("MetaPulse AI Bot is live: hourly digests & buy signals enabled.");
 
 // Create HTTP server for API endpoints
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -338,6 +402,28 @@ const server = http.createServer((req, res) => {
       tokens: TOK_INFO.size,
       scores: SCORES.size
     }));
+    return;
+  }
+  
+  if (req.url === '/api/test-buy-signals' && req.method === 'POST') {
+    try {
+      console.log('🧪 Testing buy signals manually...');
+      await sendBuySignals(bot, cfg.telegramChatId);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        status: 'success',
+        message: 'Buy signals test triggered',
+        timestamp: new Date().toISOString()
+      }));
+    } catch (error) {
+      console.error('❌ Error testing buy signals:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        status: 'error',
+        message: 'Failed to trigger buy signals',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }));
+    }
     return;
   }
   

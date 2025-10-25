@@ -110,7 +110,7 @@ export async function llmMeta(
   }
   
   try {
-    console.log("🤖 Calling Groq API for meta analysis...");
+    console.log("🤖 Calling Gemini API for meta analysis...");
     const prompt = `You are MetaPulse AI, an elite crypto market intelligence system. Your mission: identify HIGH-POTENTIAL metas that traders can profit from.
 
 TRENDING CATEGORIES (Prioritize these):
@@ -151,20 +151,25 @@ CRITICAL: Look for:
 
 Respond with JSON only: {"label": "category", "metaScore": number, "reason": "short explanation with trading insight"}`;
 
-    const requestBody = { 
-      model, 
-      messages: [{ role: "user", content: prompt }], 
-      temperature: 0.3,
-      max_tokens: 300
+    const requestBody = {
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 300,
+        responseMimeType: "application/json"
+      }
     };
     
-    console.log("🤖 Groq request body:", JSON.stringify(requestBody, null, 2));
+    console.log("🤖 Gemini request body:", JSON.stringify(requestBody, null, 2));
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`, {
       method: "POST",
       headers: { 
-        "Content-Type": "application/json", 
-        "Authorization": `Bearer ${key}` 
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(requestBody)
     });
@@ -176,7 +181,7 @@ Respond with JSON only: {"label": "category", "metaScore": number, "reason": "sh
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log("❌ Groq API error:", response.status, response.statusText);
+      console.log("❌ Gemini API error:", response.status, response.statusText);
       console.log("❌ Error details:", errorText);
       
       if (response.status === 429) {
@@ -193,20 +198,20 @@ Respond with JSON only: {"label": "category", "metaScore": number, "reason": "sh
     }
 
     const json = await response.json();
-    const text = json.choices?.[0]?.message?.content ?? "";
+    const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     
-    console.log("🤖 Groq response:", text);
+    console.log("🤖 Gemini response:", text);
     
     try { 
       const obj = JSON.parse(text);
       console.log("✅ Meta analysis result:", obj);
       return obj; 
     } catch (parseError) {
-      console.log("❌ Failed to parse Groq response:", parseError);
+      console.log("❌ Failed to parse Gemini response:", parseError);
       return heuristicMeta(input.name, input.symbol, input.desc);
     }
   } catch (error) {
-    console.log("❌ Groq API call failed:", error);
+    console.log("❌ Gemini API call failed:", error);
     return heuristicMeta(input.name, input.symbol, input.desc);
   }
 }

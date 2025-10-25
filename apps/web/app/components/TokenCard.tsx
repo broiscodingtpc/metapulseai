@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, ExternalLink, AlertTriangle, TrendingUp, Shield, Zap, Target, Activity } from 'lucide-react';
 import Image from 'next/image';
-import ElectricBorder from './ElectricBorder';
-import MetallicPaint from './MetallicPaint';
 
 interface TokenCardProps {
   token: {
@@ -136,14 +134,7 @@ export default function TokenCard({ token, index = 0 }: TokenCardProps) {
       transition={{ duration: 0.4, delay: index * 0.03 }}
       className="w-full min-w-[300px] sm:min-w-[340px] flex-shrink-0"
     >
-      <ElectricBorder
-        color={token.score >= 70 ? "#00ff88" : token.score >= 50 ? "#ffaa00" : "#ff6b6b"}
-        speed={0.8}
-        chaos={0.3}
-        thickness={1.5}
-        style={{ borderRadius: 20 }}
-      >
-        <div className={`relative bg-gradient-to-br from-slate-900/90 to-slate-950/90 backdrop-blur-xl rounded-[20px] border ${getRiskColor()} p-6 hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:shadow-primary-500/10`}>
+      <div className={`relative bg-gradient-to-br from-slate-900/90 to-slate-950/90 backdrop-blur-xl rounded-[20px] border ${getRiskColor()} p-6 hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:shadow-primary-500/10`}>
           {/* Score Badge - Top Right */}
           <div className="absolute top-4 right-4">
             <div className={`px-4 py-2 rounded-full bg-gradient-to-r ${getScoreGradient(token.score)} text-white font-bold text-lg shadow-lg`}>
@@ -175,7 +166,7 @@ export default function TokenCard({ token, index = 0 }: TokenCardProps) {
             {/* Token Info */}
             <div className="flex-1 min-w-0 pr-20">
               <h3 className="text-white font-bold text-xl mb-1 truncate">
-                <MetallicPaint>{token.symbol}</MetallicPaint>
+                {token.symbol}
               </h3>
               <p className="text-slate-400 text-sm leading-tight line-clamp-2 mb-3">{token.name}</p>
               <div className="flex items-center gap-3 flex-wrap">
@@ -270,7 +261,6 @@ export default function TokenCard({ token, index = 0 }: TokenCardProps) {
             </p>
           </div>
         </div>
-      </ElectricBorder>
     </motion.div>
   );
 }

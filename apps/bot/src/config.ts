@@ -1,11 +1,11 @@
 // Force load .env manually
-import { config } from 'dotenv';
+import { config as dotenvConfig } from 'dotenv';
 import { resolve } from 'path';
 
 // Load .env from project root (go up 2 levels from apps/bot)
 const envPath = resolve(process.cwd(), '../../.env');
 console.log("🔧 Loading .env from:", envPath);
-const result = config({ path: envPath });
+const result = dotenvConfig({ path: envPath });
 console.log("🔧 .env loaded:", result.error ? "❌ Error: " + result.error : "✅ Success");
 
 export const cfg = {
@@ -19,12 +19,12 @@ export const cfg = {
   minUniqueBuyers: Number(process.env.MIN_UNIQUE_BUYERS || 4),
   maxImpactPct: Number(process.env.MAX_PRICE_IMPACT_01 || 25),
   minBuyerSeller: Number(process.env.MIN_BUYER_SELLER_RATIO || 1.1),
-  llmKey: process.env.GROQ_API_KEY,
-  llmModel: process.env.GROQ_MODEL || "llama-3.1-8b-instant" // Default model
+  llmKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
+  llmModel: process.env.GEMINI_MODEL || "gemini-2.0-flash-exp" // Default model
 };
 
 // Debug logging
 console.log("🔧 Config loaded:");
-console.log("GROQ_API_KEY:", process.env.GROQ_API_KEY ? "✅ Set" : "❌ Missing");
-console.log("GROQ_MODEL:", process.env.GROQ_MODEL || "⚠️ Using default: llama-3.1-8b-instant");
+console.log("GEMINI_API_KEY:", process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY ? "✅ Set" : "❌ Missing");
+console.log("GEMINI_MODEL:", process.env.GEMINI_MODEL || "⚠️ Using default: gemini-2.0-flash-exp");
 console.log("Final llmModel:", cfg.llmModel);

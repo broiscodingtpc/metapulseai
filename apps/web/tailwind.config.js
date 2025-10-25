@@ -5,48 +5,39 @@ module.exports = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  darkMode: 'class', // Enable dark mode with class strategy
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // Dark mode palette (WCAG AA compliant)
-        'deep-bg': '#0a0b0f',
-        'panel-dark': '#0f1116',
-        'edge-grey': '#1a1e27',
+        // Console ASCII Theme Colors
+        'console': {
+          'bg': '#0a0c10',
+          'panel': '#0d1117', 
+          'grid': '#141922',
+          'fg': '#e6f1ff',
+          'dim': '#a2adbf',
+          'green': '#00ff9c',
+          'cyan': '#00e5ff',
+          'yellow': '#ffd866',
+          'red': '#ff5577',
+          'link': '#5bd0ff',
+        },
+        // Legacy colors for compatibility
+        'deep-bg': '#0a0c10',
+        'panel-dark': '#0d1117',
+        'edge-grey': '#141922',
         'neon-cyan': '#00e5ff',
         'electric-blue': '#3fa9ff',
         'accent-violet': '#7a5cff',
-        'text-high': '#e6f1ff', // High contrast: 14:1 on dark bg
-        'text-mid': '#b8c0d2', // Medium contrast: 7:1 on dark bg (improved from #a8b0c2)
-        'hairline': '#151923',
-        // Light mode palette (WCAG AA compliant)
-        'light-bg': '#ffffff',
-        'light-panel': '#f8f9fa',
-        'light-edge': '#e5e7eb',
-        'light-text-high': '#1a1a1a', // High contrast: 16:1 on white
-        'light-text-mid': '#4b5563', // Medium contrast: 7:1 on white (improved from #6b7280)
-        // Accessible color variants
-        'dark': {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617',
-        },
+        'text-high': '#e6f1ff',
+        'text-mid': '#a2adbf',
+        'hairline': '#141922',
       },
       fontFamily: {
-        'space-grotesk': ['var(--font-space-grotesk)', 'sans-serif'],
-        'outfit': ['var(--font-outfit)', 'sans-serif'],
-        'rajdhani': ['var(--font-rajdhani)', 'sans-serif'],
-        sans: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
-        heading: ['var(--font-space-grotesk)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-rajdhani)', 'monospace'],
+        'mono': ['var(--mono)', 'JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace'],
+        'console': ['var(--mono)', 'JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace'],
+        sans: ['var(--mono)', 'system-ui', 'sans-serif'],
+        heading: ['var(--mono)', 'system-ui', 'sans-serif'],
       },
       animation: {
         'plasma-sweep': 'plasma-sweep 8s ease-in-out infinite',
