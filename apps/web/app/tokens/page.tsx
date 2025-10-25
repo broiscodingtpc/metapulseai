@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { AsciiFrame, AsciiTable, AsciiBadge } from '../components/ascii';
@@ -35,6 +35,7 @@ interface FeedData {
 
 function TokensPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState<'score' | 'marketCap' | 'volume' | 'change24h'>('score');
@@ -274,6 +275,8 @@ function TokensPageContent() {
             maxRows={50}
             onRowClick={(token) => {
               console.log('Token selected:', token.symbol);
+              // Navigate to token detail page
+              router.push(`/token/${token.address}`);
             }}
           />
         </AsciiFrame>

@@ -1,5 +1,7 @@
 import TelegramBot from "node-telegram-bot-api";
 import { AdaptiveAnalyzer, MarketCondition, AdaptiveCriteria } from './adaptiveAnalyzer.js';
+import { sendPnLReport } from './pnlReporter.js';
+import { topTokensService } from './topTokensService.js';
 
 const adaptiveAnalyzer = new AdaptiveAnalyzer();
 
@@ -240,7 +242,7 @@ Phase 4: 🚧 Revenue Dashboard
 📊 Use the menu buttons to navigate:
 • Live Metas - View trending categories
 • Top Tokens - See best performing tokens
-• Buy Signals - Top 10 filtered tokens (hourly auto-updates)
+• Buy Signals - Top 3 filtered tokens (2-hour auto-updates)
 • Market Stats - Current market overview
 • Settings - Configure your preferences
 • About - Learn more about MetaPulse
@@ -367,7 +369,7 @@ Experienced developers and traders building the future of crypto intelligence.
 
   bot.onText(/🔥 Top Tokens/, async (msg: any) => {
     const chatId = msg.chat.id;
-    bot.sendMessage(chatId, "🔥 Top Tokens feature coming soon!\n\nFor now, try our AI Buy Signals for the best opportunities.", mainMenu);
+    await sendTopTokens(bot, chatId);
   });
 
   // Handle callback queries
@@ -405,6 +407,26 @@ Experienced developers and traders building the future of crypto intelligence.
         
       case 'bot_settings':
         await sendBotSettings(bot, chatId);
+        break;
+        
+      case 'refresh_pnl':
+        await bot.sendMessage(chatId, "📊 Generating PnL report...", mainMenu);
+        await sendPnLReport(bot, chatId);
+        break;
+        
+      case 'refresh_top_tokens':
+        await sendTopTokens(bot, chatId);
+        break;
+        
+      case 'buy_signals':
+        await sendBuySignals(bot, chatId);
+        break;
+        
+      case 'main_menu':
+        await bot.sendMessage(chatId, 
+          "🏠 **Main Menu**\n\nChoose an option below:", 
+          mainMenu
+        );
         break;
         
       default:
@@ -704,8 +726,12 @@ export async function sendBuySignals(bot: TelegramBot, chatId: string | number) 
         transactions24h: (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0),
         priceChange24h: parseFloat(pair.priceChange?.h24 || 0)
       }))
+      // Remove duplicates based on token address
+      .filter((token: BuySignalToken, index: number, array: BuySignalToken[]) => 
+        array.findIndex(t => t.address === token.address) === index
+      )
       .sort((a: BuySignalToken, b: BuySignalToken) => b.volume24h - a.volume24h)
-      .slice(0, 10);
+      .slice(0, 3);
 
     // Step 5: Track performance for learning
     await adaptiveAnalyzer.trackTokenPerformance(filteredTokens);
@@ -832,6 +858,109 @@ export async function sendBuySignals(bot: TelegramBot, chatId: string | number) 
       { 
         parse_mode: 'Markdown',
         ...errorKeyboard
+      }
+    );
+  }
+}
+
+export async function sendTopTokens(bot: TelegramBot, chatId: string | number) {
+  try {
+    // Send loading message
+    const loadingMsg = await bot.sendMessage(
+      chatId,
+      "🔍 **Analyzing Top Tokens...**\n\n" +
+      "Scanning market data and social sentiment...",
+      { parse_mode: 'Markdown' }
+    );
+
+    // Get top tokens
+    const topTokens = await topTokensService.getTopTokens(10);
+
+    if (topTokens.length === 0) {
+      await bot.editMessageText(
+        "❌ **No Token Data Available**\n\n" +
+        "Unable to fetch token data at this time. Please try again later.",
+        {
+          chat_id: chatId,
+          message_id: loadingMsg.message_id,
+          parse_mode: 'Markdown'
+        }
+      );
+      return;
+    }
+
+    // Format top tokens message
+    let message = "🔥 **TOP TOKENS** 🔥\n\n";
+    message += "📊 *Market + Social Analysis*\n\n";
+
+    topTokens.forEach((token, index) => {
+      const rank = index + 1;
+      const emoji = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `${rank}.`;
+      
+      message += `${emoji} **${token.symbol}** (${token.name})\n`;
+      message += `💰 $${token.price.toFixed(6)}\n`;
+      
+      if (token.priceChange24h !== 0) {
+        const changeEmoji = token.priceChange24h > 0 ? "📈" : "📉";
+        message += `${changeEmoji} ${token.priceChange24h > 0 ? '+' : ''}${token.priceChange24h.toFixed(2)}%\n`;
+      }
+      
+      message += `📊 Vol: $${(token.volume24h / 1000000).toFixed(1)}M\n`;
+      
+      if (token.twitterMentions > 0) {
+        const sentimentEmoji = token.sentiment === 'bullish' ? '🚀' : 
+                             token.sentiment === 'bearish' ? '🐻' : '😐';
+        message += `🐦 ${token.twitterMentions} mentions ${sentimentEmoji}\n`;
+      }
+      
+      if (token.influencerCalls > 0) {
+        message += `👑 ${token.influencerCalls} influencer calls\n`;
+      }
+      
+      message += `⭐ Score: ${token.overallScore.toFixed(1)}\n\n`;
+    });
+
+    message += "💡 *Scores combine market metrics + social sentiment*\n";
+    message += "🔄 Updated every hour";
+
+    // Create inline keyboard for token analysis
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: "📈 AI Buy Signals", callback_data: "buy_signals" },
+          { text: "📊 Market Analysis", callback_data: "market_analysis" }
+        ],
+        [
+          { text: "🔄 Refresh", callback_data: "refresh_top_tokens" },
+          { text: "🏠 Main Menu", callback_data: "main_menu" }
+        ]
+      ]
+    };
+
+    await bot.editMessageText(message, {
+      chat_id: chatId,
+      message_id: loadingMsg.message_id,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    });
+
+  } catch (error) {
+    console.error('Error sending top tokens:', error);
+    
+    const errorKeyboard = {
+      inline_keyboard: [
+        [{ text: "🔄 Try Again", callback_data: "refresh_top_tokens" }],
+        [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
+      ]
+    };
+
+    await bot.sendMessage(
+      chatId,
+      "❌ **Top Tokens Error**\n\n" +
+      "Unable to fetch top tokens data. Please try again.",
+      { 
+        parse_mode: 'Markdown',
+        reply_markup: errorKeyboard
       }
     );
   }

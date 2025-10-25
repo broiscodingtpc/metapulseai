@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import NotificationSystem from './components/NotificationSystem';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -25,10 +26,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-console-bg text-console-fg min-h-screen`}>
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-          {children}
-        </div>
-        <NotificationSystem />
+        <ErrorBoundary>
+          <div className="container mx-auto px-4 py-8 max-w-7xl">
+            {children}
+          </div>
+          <NotificationSystem />
+        </ErrorBoundary>
       </body>
     </html>
   );

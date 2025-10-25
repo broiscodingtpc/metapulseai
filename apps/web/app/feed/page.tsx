@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { AsciiFrame, AsciiLog, AsciiBadge, AsciiTable } from '../components/ascii';
@@ -46,6 +47,7 @@ interface FeedData {
 }
 
 export default function FeedPage() {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState('all');
 
   const { data, error, isLoading, mutate } = useSWR<FeedData>(
@@ -412,8 +414,10 @@ export default function FeedPage() {
             }))}
             maxRows={20}
             onRowClick={(token) => {
-              console.log('Token selected:', token.symbol);
-            }}
+                console.log('Token selected:', token.symbol);
+                // Navigate to token detail page
+                router.push(`/token/${token.address}`);
+              }}
           />
         </AsciiFrame>
       </section>

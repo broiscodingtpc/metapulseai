@@ -1,7 +1,11 @@
 import cron from "node-cron";
 import TelegramBot from 'node-telegram-bot-api';
 import { sendBuySignals } from './telegram.js';
+import { sendPnLReport } from './pnlReporter.js';
 import { AdaptiveAnalyzer } from './adaptiveAnalyzer.js';
+import { aiLearningService } from './aiLearningService.js';
+import { twitterPostingService } from './twitterPostingService.js';
+import { performanceTracker } from './performanceTracker.js';
 
 interface SchedulerConfig {
   enabled: boolean;
@@ -42,10 +46,10 @@ export class SignalScheduler {
   }
 
   private initializeTasks(): void {
-    // Hourly buy signals
+    // Buy signals every 2 hours
     this.tasks.set('hourly_signals', {
-      name: 'Hourly Buy Signals',
-      schedule: '0 * * * *', // Every hour at minute 0
+      name: 'Buy Signals (2h)',
+      schedule: '0 */2 * * *', // Every 2 hours at minute 0
       enabled: this.config.hourlySignals,
       runCount: 0
     });
@@ -73,6 +77,44 @@ export class SignalScheduler {
       enabled: true,
       runCount: 0
     });
+
+    // PnL reporting every hour
+    this.tasks.set('pnl_reporting', {
+      name: 'PnL Reporting',
+      schedule: '0 * * * *', // Every hour at minute 0
+      enabled: true,
+      runCount: 0
+    });
+
+    // AI learning - track calls every 30 minutes
+    this.tasks.set('ai_learning', {
+      name: 'AI Learning',
+      schedule: '*/30 * * * *', // Every 30 minutes
+      enabled: true,
+      runCount: 0
+    });
+
+    // Twitter posting - 3 times daily (8 AM, 2 PM, 8 PM)
+    this.tasks.set('twitter_morning', {
+      name: 'Twitter Morning Post',
+      schedule: '0 8 * * *', // Daily at 8 AM
+      enabled: true,
+      runCount: 0
+    });
+
+    this.tasks.set('twitter_afternoon', {
+      name: 'Twitter Afternoon Post',
+      schedule: '0 14 * * *', // Daily at 2 PM
+      enabled: true,
+      runCount: 0
+    });
+
+    this.tasks.set('twitter_evening', {
+      name: 'Twitter Evening Post',
+      schedule: '0 20 * * *', // Daily at 8 PM
+      enabled: true,
+      runCount: 0
+    });
   }
 
   public start(): void {
@@ -87,15 +129,15 @@ export class SignalScheduler {
     // Load chat IDs from config or environment
     this.loadChatIds();
 
-    // Schedule hourly buy signals
+    // Schedule buy signals every 2 hours
     if (this.tasks.get('hourly_signals')?.enabled) {
-      cron.schedule('0 * * * *', async () => {
+      cron.schedule('0 */2 * * *', async () => {
         await this.runHourlySignals();
       }, {
         scheduled: true,
         timezone: 'UTC'
       });
-      console.log('✅ Hourly buy signals scheduled');
+      console.log('✅ Buy signals scheduled (every 2 hours)');
     }
 
     // Schedule market analysis
@@ -128,6 +170,70 @@ export class SignalScheduler {
       timezone: 'UTC'
     });
     console.log('✅ Weekly summary scheduled (Sundays 10 AM UTC)');
+
+    // Schedule PnL reporting
+    if (this.tasks.get('pnl_reporting')?.enabled) {
+      cron.schedule('0 * * * *', async () => {
+        await this.runPnLReporting();
+      }, {
+        scheduled: true,
+        timezone: 'UTC'
+      });
+      console.log('✅ PnL reporting scheduled (every hour)');
+    }
+
+    // Schedule AI learning
+    if (this.tasks.get('ai_learning')?.enabled) {
+      cron.schedule('*/30 * * * *', async () => {
+        await this.runAILearning();
+      }, {
+        scheduled: true,
+        timezone: 'UTC'
+      });
+      console.log('✅ AI learning scheduled (every 30 minutes)');
+      
+      // Start the learning loop immediately
+      aiLearningService.startLearningLoop();
+    }
+
+    // Schedule Twitter posting - Morning (8 AM UTC)
+    if (this.tasks.get('twitter_morning')?.enabled) {
+      cron.schedule('0 8 * * *', async () => {
+        await this.runTwitterPosting('morning');
+      }, {
+        scheduled: true,
+        timezone: 'UTC'
+      });
+      console.log('✅ Twitter morning posts scheduled (8 AM UTC)');
+    }
+
+    // Schedule Twitter posting - Afternoon (2 PM UTC)
+    if (this.tasks.get('twitter_afternoon')?.enabled) {
+      cron.schedule('0 14 * * *', async () => {
+        await this.runTwitterPosting('afternoon');
+      }, {
+        scheduled: true,
+        timezone: 'UTC'
+      });
+      console.log('✅ Twitter afternoon posts scheduled (2 PM UTC)');
+    }
+
+    // Schedule Twitter posting - Evening (8 PM UTC)
+    if (this.tasks.get('twitter_evening')?.enabled) {
+      cron.schedule('0 20 * * *', async () => {
+        await this.runTwitterPosting('evening');
+      }, {
+        scheduled: true,
+        timezone: 'UTC'
+      });
+      console.log('✅ Twitter evening posts scheduled (8 PM UTC)');
+    }
+
+    // Initialize Twitter posting service
+    twitterPostingService.initialize();
+
+    // Initialize performance tracker with some demo data
+    performanceTracker.simulatePerformanceData();
 
     console.log('🎯 All scheduled tasks are now active');
   }
@@ -294,6 +400,77 @@ export class SignalScheduler {
       console.log('✅ Weekly summary completed');
     } catch (error) {
       console.error('❌ Error in weekly summary task:', error);
+    }
+  }
+
+  private async runPnLReporting(): Promise<void> {
+    try {
+      console.log('📊 Running PnL reporting task...');
+      
+      const task = this.tasks.get('pnl_reporting');
+      if (task) {
+        task.lastRun = new Date();
+        task.runCount++;
+      }
+
+      // Send PnL reports to configured channels
+      for (const chatId of this.config.chatIds) {
+        try {
+          await sendPnLReport(this.bot, chatId, this.adaptiveAnalyzer);
+          await this.sleep(2000); // 2 second delay between messages
+        } catch (error) {
+          console.error(`❌ Error sending PnL report to chat ${chatId}:`, error);
+        }
+      }
+
+      console.log('✅ PnL reporting task completed');
+    } catch (error) {
+      console.error('❌ Error in PnL reporting task:', error);
+    }
+  }
+
+  private async runAILearning(): Promise<void> {
+    try {
+      console.log('🧠 Running AI learning task...');
+      
+      const task = this.tasks.get('ai_learning');
+      if (task) {
+        task.lastRun = new Date();
+        task.runCount++;
+      }
+
+      // Update AI learning with recent performance data
+      await aiLearningService.updateLearning();
+      
+      console.log('✅ AI learning task completed');
+    } catch (error) {
+      console.error('❌ Error in AI learning task:', error);
+    }
+  }
+
+  private async runTwitterPosting(timeOfDay: 'morning' | 'afternoon' | 'evening'): Promise<void> {
+    try {
+      console.log(`🐦 Running Twitter posting task (${timeOfDay})...`);
+      
+      const taskName = `twitter_${timeOfDay}`;
+      const task = this.tasks.get(taskName);
+      if (task) {
+        task.lastRun = new Date();
+        task.runCount++;
+      }
+
+      // Check if Twitter service is ready
+      if (!twitterPostingService.isReady()) {
+        console.log('⚠️ Twitter posting service not ready, skipping...');
+        return;
+      }
+
+      // Post to Twitter with bot performance highlights
+      await twitterPostingService.schedulePost();
+      
+      console.log(`✅ Twitter posting task (${timeOfDay}) completed`);
+    } catch (error) {
+      console.error(`❌ Error in Twitter posting task (${timeOfDay}):`, error);
     }
   }
 

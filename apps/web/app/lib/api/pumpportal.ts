@@ -270,10 +270,24 @@ class PumpPortalAPI {
     return trades;
   }
 
-  // Get trending tokens (mock implementation)
+  // Get trending tokens - try real API first, fallback to mock
   async getTrendingTokens(limit = 20): Promise<PumpToken[]> {
-    console.log('[PumpPortal] Getting trending tokens (mock)');
-    return this.getMockTokens(limit);
+    try {
+      console.log('[PumpPortal] Attempting to get trending tokens from real API');
+      
+      // Try to get real tokens via WebSocket
+      const realTokens = await this.getRecentTokens(24, limit);
+      
+      if (realTokens.length > 0) {
+        console.log(`[PumpPortal] Got ${realTokens.length} real tokens`);
+        return realTokens;
+      }
+      
+      throw new Error('No real tokens available');
+    } catch (error) {
+      console.log('[PumpPortal] Falling back to mock data:', error);
+      return this.getMockTokens(limit);
+    }
   }
 }
 

@@ -3,13 +3,12 @@
 import { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { motion } from 'framer-motion';
+import ClientOnly from './ClientOnly';
 
-export default function ThemeToggle() {
+function ThemeToggleContent() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const storedTheme = localStorage.getItem('theme') as 'dark' | 'light' || 'dark';
     setTheme(storedTheme);
   }, []);
@@ -20,11 +19,6 @@ export default function ThemeToggle() {
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
-
-  // Don't render until mounted to avoid SSR mismatch
-  if (!mounted) {
-    return <div className="w-14 h-7"></div>;
-  }
 
   return (
     <motion.button
@@ -59,6 +53,14 @@ export default function ThemeToggle() {
         <Moon className="w-3 h-3 text-slate-300 opacity-70" />
       </div>
     </motion.button>
+  );
+}
+
+export default function ThemeToggle() {
+  return (
+    <ClientOnly fallback={<div className="w-14 h-7"></div>}>
+      <ThemeToggleContent />
+    </ClientOnly>
   );
 }
 

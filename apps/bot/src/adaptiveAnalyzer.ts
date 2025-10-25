@@ -1,4 +1,6 @@
 import { cfg } from './config.js';
+import { twitterService, TwitterSentiment } from './twitterService.js';
+import { groqService } from './groqService.js';
 
 interface MarketCondition {
   volatility: 'low' | 'medium' | 'high';
@@ -26,6 +28,8 @@ interface TokenPerformance {
   currentPrice: number;
   performance: number;
   success: boolean;
+  twitterSentiment?: TwitterSentiment;
+  socialScore?: number;
 }
 
 class AdaptiveAnalyzer {
@@ -48,6 +52,16 @@ class AdaptiveAnalyzer {
         this.fetchDexScreenerMarketData(),
         this.fetchCoinGeckoMarketData()
       ]);
+
+      // Use Groq AI for enhanced market analysis
+      const aiInsight = await groqService.generateMarketInsight({
+        activeTokens: dexData?.length || 0,
+        topPerformers: dexData?.slice(0, 5).map(d => d.symbol).join(', ') || 'N/A',
+        sentiment: 'analyzing...',
+        volumeTrends: this.analyzeVolume(dexData)
+      });
+
+      console.log('🤖 Groq Market Insight:', aiInsight);
 
       // Calculate volatility based on price movements
       const volatility = this.calculateVolatility(dexData);
@@ -169,8 +183,23 @@ class AdaptiveAnalyzer {
   async trackTokenPerformance(tokens: any[]) {
     const now = Date.now();
     
-    // Add new tokens to tracking
+    // Add new tokens to tracking with Twitter sentiment analysis
     for (const token of tokens) {
+      let twitterSentiment: TwitterSentiment | undefined;
+      let socialScore = 0;
+
+      // Get Twitter sentiment if service is ready
+      if (twitterService.isReady()) {
+        try {
+          twitterSentiment = await twitterService.getTokenSentiment(token.symbol);
+          
+          // Calculate social score based on sentiment and engagement
+          socialScore = this.calculateSocialScore(twitterSentiment);
+        } catch (error) {
+          console.error(`Error getting Twitter sentiment for ${token.symbol}:`, error);
+        }
+      }
+
       this.performanceHistory.push({
         address: token.address,
         symbol: token.symbol,
@@ -178,16 +207,40 @@ class AdaptiveAnalyzer {
         initialPrice: token.price,
         currentPrice: token.price,
         performance: 0,
-        success: false
+        success: false,
+        twitterSentiment,
+        socialScore
       });
     }
 
-    // Update existing tokens (check performance after 24h)
+    // Update existing tokens (check performance after 1h and 24h)
+    const oneHourAgo = now - (60 * 60 * 1000);
     const oneDayAgo = now - (24 * 60 * 60 * 1000);
+    
+    // Tokens to check after 1 hour
+    const oneHourTokens = this.performanceHistory.filter(
+      t => t.signalTime < oneHourAgo && t.signalTime > oneHourAgo - (10 * 60 * 1000) // 10 min window
+    );
+    
+    // Tokens to check after 24 hours
     const tokensToUpdate = this.performanceHistory.filter(
       t => t.signalTime < oneDayAgo && t.signalTime > oneDayAgo - (60 * 60 * 1000)
     );
 
+    // Update 1-hour performance
+    for (const token of oneHourTokens) {
+      try {
+        const currentPrice = await this.getCurrentTokenPrice(token.address);
+        if (currentPrice > 0) {
+          token.currentPrice = currentPrice;
+          token.performance = ((currentPrice - token.initialPrice) / token.initialPrice) * 100;
+        }
+      } catch (error) {
+        console.error(`Error updating 1h price for ${token.symbol}:`, error);
+      }
+    }
+
+    // Update 24-hour performance
     for (const token of tokensToUpdate) {
       try {
         const currentPrice = await this.getCurrentTokenPrice(token.address);
@@ -211,6 +264,26 @@ class AdaptiveAnalyzer {
     if (this.performanceHistory.length > 1000) {
       this.performanceHistory = this.performanceHistory.slice(-1000);
     }
+  }
+
+  /**
+   * Get PnL report for tokens tracked 1 hour ago
+   */
+  getOneHourPnLReport(): { address: string; symbol: string; performance: number; initialPrice: number; currentPrice: number }[] {
+    const now = Date.now();
+    const oneHourAgo = now - (60 * 60 * 1000);
+    
+    return this.performanceHistory
+      .filter(t => t.signalTime < oneHourAgo && t.signalTime > oneHourAgo - (10 * 60 * 1000) && t.performance !== 0)
+      .map(t => ({
+        address: t.address,
+        symbol: t.symbol,
+        performance: t.performance,
+        initialPrice: t.initialPrice,
+        currentPrice: t.currentPrice
+      }))
+      .sort((a, b) => b.performance - a.performance)
+      .slice(0, 3); // Top 3 performers
   }
 
   /**
@@ -367,6 +440,52 @@ class AdaptiveAnalyzer {
       bestPerformer,
       successRate: Math.round(this.successRate * 100) / 100
     };
+  }
+
+  /**
+   * Calculate social score based on Twitter sentiment data
+   */
+  private calculateSocialScore(sentiment: TwitterSentiment): number {
+    let score = 0;
+
+    // Base score from sentiment (0-40 points)
+    switch (sentiment.sentiment) {
+      case 'bullish':
+        score += 40;
+        break;
+      case 'bearish':
+        score += 10; // Bearish sentiment can still be valuable
+        break;
+      case 'neutral':
+        score += 20;
+        break;
+    }
+
+    // Confidence multiplier (0.1-1.0)
+    score *= sentiment.confidence;
+
+    // Mentions bonus (0-20 points)
+    score += Math.min(sentiment.mentions / 5, 20);
+
+    // Influencer mentions bonus (0-20 points)
+    score += Math.min(sentiment.influencerMentions * 5, 20);
+
+    // Engagement quality bonus (0-20 points)
+    const avgEngagement = sentiment.recentTweets.reduce((sum, tweet) => 
+      sum + tweet.likes + tweet.retweets * 2, 0) / Math.max(sentiment.recentTweets.length, 1);
+    score += Math.min(avgEngagement / 100, 20);
+
+    return Math.min(score, 100); // Cap at 100
+  }
+
+  /**
+   * Get tokens with high social scores for enhanced signals
+   */
+  getTopSocialTokens(limit: number = 10): TokenPerformance[] {
+    return this.performanceHistory
+      .filter(token => token.socialScore && token.socialScore > 50)
+      .sort((a, b) => (b.socialScore || 0) - (a.socialScore || 0))
+      .slice(0, limit);
   }
 }
 

@@ -10,6 +10,25 @@ export type SubMsg =
   | { method: "unsubscribeTokenTrade"; keys: string[] }
   | { method: "unsubscribeAccountTrade"; keys: string[] };
 
+export interface RawEvent {
+  id?: string;
+  mint: string;
+  signature?: string;
+  trader_pubkey?: string;
+  tx_type: string; // create | trade | migrate
+  initial_buy?: number;
+  sol_amount?: number;
+  v_tokens_in_curve?: number;
+  v_sol_in_curve?: number;
+  market_cap_sol?: number;
+  name?: string;
+  symbol?: string;
+  uri?: string;
+  pool?: string;
+  payload: any;
+  received_at: Date;
+}
+
 export interface PumpPortalConfig {
   apiKey?: string;
   maxReconnectAttempts?: number;
@@ -17,6 +36,7 @@ export interface PumpPortalConfig {
   heartbeatInterval?: number;
   connectionTimeout?: number;
   enableLogging?: boolean;
+  onRawEvent?: (event: RawEvent) => void;
 }
 
 export interface ConnectionStats {
@@ -43,7 +63,7 @@ export class PumpPortalWS extends EventEmitter {
   private isConnecting = false;
   private shouldReconnect = true;
 
-  constructor(config: PumpPortalConfig, onMessage: (d: any) => void) {
+  constructor(config: PumpPortalConfig, onMessage?: (d: any) => void) {
     super();
     
     this.config = {
@@ -52,14 +72,15 @@ export class PumpPortalWS extends EventEmitter {
       reconnectDelay: config.reconnectDelay || 2000,
       heartbeatInterval: config.heartbeatInterval || 30000,
       connectionTimeout: config.connectionTimeout || 10000,
-      enableLogging: config.enableLogging !== false
+      enableLogging: config.enableLogging !== false,
+      onRawEvent: config.onRawEvent || (() => {})
     };
 
     this.url = this.config.apiKey
       ? `wss://pumpportal.fun/api/data?api-key=${this.config.apiKey}`
       : `wss://pumpportal.fun/api/data`;
     
-    this.onMessage = onMessage;
+    this.onMessage = onMessage || this.handleRawMessage.bind(this);
     
     this.stats = {
       connected: false,
@@ -92,6 +113,78 @@ export class PumpPortalWS extends EventEmitter {
       case 'error':
         console.error(`${prefix} ❌ ${message}`);
         break;
+    }
+  }
+
+  private normalizeEvent(rawData: any): RawEvent {
+    const now = new Date();
+    
+    // Handle different event types from PumpPortal
+    if (rawData.txType === 'create') {
+      return {
+        mint: rawData.mint,
+        signature: rawData.signature,
+        trader_pubkey: rawData.traderPublicKey,
+        tx_type: 'create',
+        initial_buy: rawData.initialBuy,
+        sol_amount: rawData.solAmount,
+        market_cap_sol: rawData.marketCapSol,
+        name: rawData.name,
+        symbol: rawData.symbol,
+        uri: rawData.uri,
+        payload: rawData,
+        received_at: now
+      };
+    } else if (rawData.txType === 'trade') {
+      return {
+        mint: rawData.mint,
+        signature: rawData.signature,
+        trader_pubkey: rawData.traderPublicKey,
+        tx_type: 'trade',
+        sol_amount: rawData.solAmount,
+        v_tokens_in_curve: rawData.vTokensInCurve,
+        v_sol_in_curve: rawData.vSolInCurve,
+        market_cap_sol: rawData.marketCapSol,
+        payload: rawData,
+        received_at: now
+      };
+    } else if (rawData.txType === 'migrate') {
+      return {
+        mint: rawData.mint,
+        signature: rawData.signature,
+        tx_type: 'migrate',
+        pool: rawData.pool,
+        payload: rawData,
+        received_at: now
+      };
+    } else {
+      // Generic fallback
+      return {
+        mint: rawData.mint || rawData.tokenAddress || 'unknown',
+        signature: rawData.signature,
+        tx_type: rawData.txType || rawData.type || 'unknown',
+        payload: rawData,
+        received_at: now
+      };
+    }
+  }
+
+  private handleRawMessage(data: any) {
+    try {
+      const normalizedEvent = this.normalizeEvent(data);
+      
+      // Emit normalized event
+      this.emit('rawEvent', normalizedEvent);
+      
+      // Call callback if provided
+      if (this.config.onRawEvent) {
+        this.config.onRawEvent(normalizedEvent);
+      }
+      
+      this.log(`Processed ${normalizedEvent.tx_type} event for ${normalizedEvent.mint}`);
+    } catch (error) {
+      this.log(`Error normalizing event: ${error.message}`, 'error');
+      this.emit('error', error);
     }
   }
 

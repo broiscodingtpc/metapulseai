@@ -1,3 +1,5 @@
+import { groqService } from './groqService.js';
+
 interface TokenScore {
   tech: number;
   meta: number;
@@ -64,6 +66,38 @@ export class BuyDecisionEngine {
     const reasons: string[] = [];
     let confidence = 0;
     let shouldBuy = false;
+
+    // Enhanced AI Analysis using Groq
+    try {
+      const aiAnalysis = await groqService.analyzeToken({
+        symbol: tokenScore.symbol || 'Unknown',
+        name: tokenScore.name || 'Unknown Token',
+        score: tokenScore.total || 0,
+        metaScore: tokenScore.metaScore || 0,
+        label: tokenScore.label || 'Unknown',
+        price: dexData?.priceUsd || 0,
+        volume24h: dexData?.volume?.h24 || 0,
+        liquidity: dexData?.liquidity?.usd || 0,
+        marketCap: dexData?.marketCap || 0,
+        pairAge: dexData?.pairAge || 0
+      });
+
+      console.log('🤖 Groq AI Analysis:', aiAnalysis);
+      
+      // Use AI insights to adjust confidence
+      if (aiAnalysis.recommendation === 'BUY') {
+        confidence += 20;
+        reasons.push(`🤖 AI recommends BUY: ${aiAnalysis.reasoning}`);
+      } else if (aiAnalysis.recommendation === 'HOLD') {
+        confidence += 10;
+        reasons.push(`🤖 AI suggests HOLD: ${aiAnalysis.reasoning}`);
+      } else {
+        confidence -= 10;
+        reasons.push(`🤖 AI advises caution: ${aiAnalysis.reasoning}`);
+      }
+    } catch (error) {
+      console.log('⚠️ Groq AI analysis failed, using fallback logic');
+    }
 
     // 1. AI Score Analysis (40% weight)
     const aiScoreWeight = this.analyzeAIScore(tokenScore, reasons);

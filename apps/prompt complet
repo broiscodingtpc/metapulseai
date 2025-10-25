@@ -1,0 +1,332 @@
+You are an expert full-stack developer and infra engineer. You will implement fully the MetaPulse web app (Next.js + TypeScript + Tailwind) and the Telegram bot (Node.js + TypeScript) as a production-ready, non-MVP product. Do not change project functionality; only enhance and add missing modules described below. Use the existing environment variables from the .env template (do not hardcode secrets). Ensure code quality, tests, and deployment configuration are provided. Provide clear commits and diffs for each major change. Document how to run locally and deploy.
+
+High-level goals
+
+Ingest PumpPortal WebSocket real-time events (new token creates, trades) and persist raw events.
+
+Fetch market snapshots from DexScreener and Gemini for each token, with robust rate-limiting (global 2 req/sec default).
+
+Score each token using rule-based heuristics + Gemini AI model (Groq deprecated) — produce prob_enterable, expected_roi_p50, expected_roi_p90, risk, finalScore, confidence.
+
+Provide a Next.js site with ASCII/console theme (presale-first home) that shows live feed, scan page, dashboard, wallet login, and "Best token last hour".
+
+Provide a Telegram bot that pushes hourly signals, accepts DM scans, supports wallet linking (via signed nonce), and allows opt-in private hourly signals.
+
+Provide a scheduler to compute hourly signals (aggregates last 60 minutes), store hourly_signals, and broadcast (site + Telegram).
+
+Implement Upstash Redis rate-limiter (token bucket) and job queue; Supabase as DB and Auth; Vercel/Railway deployment config.
+
+Provide tests, lints, monitoring hooks, and documentation.
+
+Repo layout (create/update)
+metapulse/
+├── apps/
+│   ├── web/                # Next.js 14+ app (TypeScript, Tailwind)
+│   └── bot/                # Telegram bot (TypeScript)
+├── packages/
+│   ├── core/               # shared types, scoring logic, rate-limiter wrapper
+│   ├── pumpportal-client/  # websocket client wrapper
+│   └── dexscreener-client/ # rate-limited API client
+├── infra/                  # deployment & docker-compose
+└── README.md
+
+ENV variables (use these, do NOT hardcode values)
+
+Use the .env template you have. Cursor should reference these env names everywhere:
+
+PUMPPORTAL_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+
+GEMINI_API_KEY, GEMINI_MODEL
+
+DEXSCREENER_BASE_URL, DEXSCREENER_RATE_LIMIT
+
+UPSTASH_REDIS_URL (for rate-limiting queue)
+
+SUPABASE_URL, SUPABASE_KEY
+
+NEXT_PUBLIC_BASE_URL, BOT_PORT, WEB_PORT
+
+DIGEST_CRON, ROLLUP_WINDOW_SEC, etc.
+
+Security requirement: Add a pre-commit check that prevents committing files containing these variable values. Add README instructions to use platform secrets for CI/CD.
+
+Detailed feature tasks (implement all)
+1) PumpPortal ingest worker (packages/pumpportal-client)
+
+WebSocket connection to wss://pumpportal.fun/api/data?api-key=...
+
+Subscribe subscribeNewToken, subscribeMigration, subscribeTokenTrade.
+
+Normalize incoming messages to common RawEvent type.
+
+Persist raw events to Supabase raw_events table.
+
+Reconnect with exponential backoff; log errors to Sentry.
+
+Do not store API key in logs.
+
+2) DexScreener client (packages/dexscreener-client)
+
+Wrap DexScreener endpoints.
+
+Enforce global rate limit: default 2 req/sec (configurable via DEXSCREENER_RATE_LIMIT).
+
+Use Upstash Redis token-bucket implementation (create core/rateLimiter module).
+
+Cache responses in Supabase or in Redis for CACHE_TTL_MINUTES.
+
+Provide getMarketSnapshot(mint) returning normalized fields: price, volume24h, liquidity, holders, lpSize, marketCapSol, dexUrl.
+
+3) Scoring engine (packages/core)
+
+Heuristic rules module:
+
+liquidity threshold, min unique buyers, txCount, ageHours checks.
+
+produce a ruleScore 0–40.
+
+AI scoring adapter:
+
+Use Gemini API (GEMINI_API_KEY, GEMINI_MODEL) — create a prompt schema that takes snapshot + rawEvent and returns JSON:
+
+{ "prob_enterable": 0-1, "expected_roi_p50": float, "expected_roi_p90": float, "risk": "LOW|MEDIUM|HIGH", "reasoning": "..." }
+
+
+Implement retries/backoff for network issues; respect model rate limits by batching where possible and by reading GEMINI_RATE_LIMIT env if provided.
+
+Combine heuristics + AI into final finalScore (0–100) and confidence.
+
+Persist scores to DB with model response (for auditing).
+
+4) Database schema (Supabase)
+
+Create SQL migrations for these tables:
+
+raw_events
+
+market_snapshots
+
+scores
+
+hourly_signals
+
+users (id, email optional, wallet_pubkey, signed_nonce, prefs)
+
+user_alerts
+
+logs (type, metadata JSON)
+Include indexes: raw_events(mint, received_at), scores(mint, timestamp).
+
+5) Rate limiter (Upstash Redis) — core/rateLimiter
+
+Implement token-bucket in Lua (as in earlier example).
+
+Provide acquireToken(scopeKey, capacity, refillPerSec).
+
+Use for: DexScreener calls, Gemini calls, PumpPortal REST (if used).
+
+Expose metrics for monitoring.
+
+6) Job Queue & Workers
+
+Use BullMQ (or lightweight Redis queue) for:
+
+Market snapshot fetch jobs (on new token event).
+
+AI scoring jobs (prioritize tokens with ruleScore > threshold).
+
+Hourly aggregation job (triggered by cron).
+
+Worker file in apps/bot/src/workers and apps/web/src/workers as needed.
+
+7) Hourly signal scheduler (cron)
+
+Use DIGEST_CRON (default "0 * * * *").
+
+At run: query tokens created/traded in last ROLLUP_WINDOW_SEC (3600s), filter by confidence >= 0.5, liquidity conditions, sort by finalScore desc, pick top candidate.
+
+Save to hourly_signals, emit SSE to site, and push to Telegram group plus DM subscribers.
+
+If no candidate meets threshold, do not publish signal but log.
+
+8) Telegram Bot (apps/bot)
+
+Commands:
+
+/scan <mint> — returns latest snapshot + score (rate-limited per-user).
+
+/trending — top TOP_TOKENS_LIMIT tokens by score in last hour.
+
+/subscribe /unsubscribe — hourly DM signals opt-in/out.
+
+/linkwallet — initiates link flow: bot provides a one-time nonce; user signs on-site to verify.
+
+Admin commands for manual publish of a signal (protected via ADMIN_PASSWORD env).
+
+Broadcast hourly signals to TELEGRAM_CHAT_ID.
+
+For DMs: ensure private messages respect user opt-in and rate limits.
+
+9) Web app (Next.js, ASCII theme)
+
+Theme: Console ASCII style as earlier. Implement components:
+
+AsciiFrame, AsciiTable, AsciiBadge, AsciiProgress, AsciiLog.
+
+Pages:
+
+/ Homepage: presale-first hero, AsciiProgress presale, Best token last hour big panel, Latest token panel, Top tokens AsciiTable.
+
+/scan page: input mint -> show snapshot & score (calls server API).
+
+/feed live feed (SSE/WebSocket) showing RawEvents as AsciiLog.
+
+/tokens — paginated list with filters (meta category, risk).
+
+/dashboard — requires wallet login: user alerts, opt-ins, execution logs.
+
+/about, /whitepaper.
+
+Web API (Next.js app router or Node API):
+
+GET /api/token/:mint -> returns snapshot + score.
+
+POST /api/scan -> checks rate-limiter then enqueues scan job if needed.
+
+POST /api/link-nonce -> issues nonce for wallet linking (store nonce).
+
+POST /api/verify-signature -> verify signed nonce, link wallet to user in Supabase.
+
+Wallet login:
+
+Use Solana Wallet Adapter: allow Phantom/Phantom Mobile connect. On connect, call POST /api/link-nonce to get nonce, user signs, then POST /api/verify-signature.
+
+Store wallet_pubkey and set auth session (Supabase session or JWT).
+
+Realtime updates:
+
+SSE or Next.js Server-Sent Events endpoint to push updates to frontend when new tokens/scores available.
+
+10) Execution service (manual-only)
+
+Build tx with PumpPortal trade-local API (do not auto-execute).
+
+Flow:
+
+User prepares buy on site -> display tx details + fees -> user signs in wallet (non-custodial). If user wants to use PumpPortal Lightning wallet, require API key on their side or use local signing flow.
+
+Security: require explicit confirmation, show full details, rate-limit exec requests. Log tx signature and store in logs.
+
+11) Tests & QA
+
+Unit tests for core scoring logic (Jest).
+
+Integration tests for DexScreener client with mocked responses.
+
+E2E tests for scan flow using Playwright (scan a known mint).
+
+Linting (ESLint) and Prettier config.
+
+Add Github Actions CI to run tests on PRs.
+
+12) Observability & Monitoring
+
+Sentry integration (errors).
+
+Prometheus metrics (optional) for rate limiter and job queue; or simple logging + Supabase logs.
+
+Healthcheck endpoints for workers.
+
+13) Deployment infra
+
+infra/docker-compose.yml for local dev with Redis, Postgres (Supabase emulator optional).
+
+Vercel config for apps/web.
+
+Railway/Render config for apps/bot and workers.
+
+GitHub Actions workflows for CI and CD (deploy to Vercel/Railway).
+
+Non-functional & Security requirements
+
+Do not commit any real API keys in repo. Add pre-commit & CI check to prevent secrets leak.
+
+All external API keys must be read from environment vars or secret manager.
+
+Logs must not contain raw API keys or private info.
+
+Rate-limiter must be global for DexScreener and Gemini to avoid bans.
+
+Publish clear disclaimers on site about risk, model limitations, and that signals are estimates.
+
+Deliverables from Cursor
+
+Implemented code in repo per layout with commits grouped by feature:
+
+feat: pumpportal ingest worker
+
+feat: dexscreener client + rate limiter
+
+feat: scoring engine + gemini AI adapter
+
+feat: hourly scheduler + telegram push
+
+feat: nextjs ascii UI + api endpoints
+
+feat: wallet link flow
+
+chore: ci/cd, lint, tests
+
+SQL migrations for Supabase.
+
+README.md with:
+
+Setup instructions, local dev steps.
+
+How to rotate secrets safely and where to place them.
+
+How to run worker, bot, web locally (commands).
+
+How to deploy to Vercel/Railway.
+
+CI pipeline (GitHub Actions) with tests and deploy steps.
+
+Postman collection or OpenAPI spec for APIs.
+
+Short docs describing monitoring, maintenance, and how to rotate API keys.
+
+Extra: Example Gemini prompt (for scoring)
+
+Provide a TypeScript function that builds prompt JSON for Gemini. Include strict response schema validation (JSON schema) and fallbacks if model returns malformed JSON. Persist model text in scores.model_response for audit.
+
+Acceptance criteria
+
+End-to-end: New token on PumpPortal triggers ingest -> market snapshot fetch -> scoring run -> appears in web feed in <30s (subject to rate limits).
+
+Hourly signal: cron picks top candidate and publishes to Telegram Group + site Best token last hour.
+
+User can login with Solana wallet, link it to Telegram via signed nonce, and enable hourly DM signals.
+
+All calls honored rate-limits; system shows graceful retry/queue messages for users.
+
+All code passes tests & CI.
+
+Important constraints & legal note (must be printed in README)
+
+Do not provide automatic front-runner/sniper functionality. Execution service is manual and opt-in. The developer must ensure compliance with PumpPortal, exchange ToS, and local laws.
+
+Show disclaimers on site and require users to accept risks before subscribing to private signals.
+
+Final instructions for Cursor
+
+Implement step-by-step, commit after finishing each major module, and include diffs.
+
+Prefer code clarity and robust error-handling over micro-optimizations.
+
+When using third-party SDKs, prefer minimal versions and avoid deprecated packages.
+
+Provide migration SQL and seed scripts for testing.
+
+Keep UI polished: ASCII console theme must be clean, accessible, and mobile-friendly.
+
+After implementation, provide a runbook with commands to rotate keys and lock down environment variables.

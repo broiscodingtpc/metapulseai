@@ -4,6 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { AsciiFrame, AsciiTable, AsciiBadge } from './components/ascii';
 import RealTimeDashboard from './components/RealTimeDashboard';
+import LiveMetas from './components/LiveMetas';
+import RealTimeUpdates from './components/RealTimeUpdates';
 
 export default function HomePage() {
   return (
@@ -33,6 +35,16 @@ export default function HomePage() {
       {/* Real-Time Dashboard */}
       <section>
         <RealTimeDashboard />
+      </section>
+
+      {/* Live Metas Section */}
+      <section>
+        <LiveMetas maxMetas={6} autoRefresh={true} refreshInterval={30000} />
+      </section>
+
+      {/* Real-Time Updates Section */}
+      <section>
+        <RealTimeUpdates maxUpdates={10} autoRefresh={true} refreshInterval={5000} />
       </section>
 
       {/* Presale Section */}
@@ -206,6 +218,9 @@ export default function HomePage() {
           </Link>
           <Link href="/analytics" className="ascii-button">
             [ Analytics ]
+          </Link>
+          <Link href="/portfolio" className="ascii-button ascii-button-success">
+            [ Portfolio Tracker ]
           </Link>
           <Link href="/monitoring" className="ascii-button">
             [ System Monitor ]
