@@ -229,7 +229,6 @@ function RealTimeDashboardContent() {
                       <div className="flex items-center gap-2">
                         <span className="text-console-fg font-bold">{token.name}</span>
                         <span className="text-console-dim text-xs">({token.symbol})</span>
-                        <span className="text-console-dim text-xs">{token.age}</span>
                       </div>
                     </td>
                     <td className="text-right py-2 text-console-fg">{formatNumber(token.price)}</td>
@@ -243,8 +242,8 @@ function RealTimeDashboardContent() {
                     </td>
                     <td className="text-center py-2">
                       <div className="flex items-center justify-center gap-1">
-                        <span className="text-console-fg">{(token.sentiment * 100).toFixed(0)}</span>
-                        <span>{getSentimentEmoji(token.sentiment)}</span>
+                        <span className="text-console-fg">{token.aiScore}</span>
+                        <span>{getSentimentEmoji(token.aiScore / 100)}</span>
                       </div>
                     </td>
                   </tr>
@@ -266,9 +265,9 @@ function RealTimeDashboardContent() {
           <div className="ascii-box p-4">
             <div className="text-console-yellow font-bold mb-2">⚡ Market Mood</div>
             <div className="text-console-fg text-sm mb-1">
-              {marketStats.avgSentiment >= 0.7 ? 'Extremely Bullish' : 
-               marketStats.avgSentiment >= 0.5 ? 'Bullish' : 
-               marketStats.avgSentiment >= 0.3 ? 'Neutral' : 'Bearish'}
+              {(marketStats.avgSentiment || 0) >= 0.7 ? 'Extremely Bullish' : 
+               (marketStats.avgSentiment || 0) >= 0.5 ? 'Bullish' : 
+               (marketStats.avgSentiment || 0) >= 0.3 ? 'Neutral' : 'Bearish'}
             </div>
             <div className="text-console-dim text-xs">Based on social sentiment</div>
           </div>

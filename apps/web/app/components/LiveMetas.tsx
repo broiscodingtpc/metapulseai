@@ -143,7 +143,7 @@ function LiveMetasContent({
       // Mark as mock data
       const mockMetas = newMetas.map(meta => ({
         ...meta,
-        name: `${meta.name} (MOCK)`
+        category: `${meta.category} (MOCK)`
       }));
       setMetas(mockMetas);
       setLastUpdate(new Date());

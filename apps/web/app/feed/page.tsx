@@ -162,8 +162,8 @@ export default function FeedPage() {
       categories: metas.reduce((acc, meta) => {
         acc[meta.category] = {
           score: meta.averageScore,
-          trend: (meta.change24h > 5 ? 'up' : meta.change24h < -5 ? 'down' : 'stable') as 'up' | 'down' | 'stable',
-          volume: meta.volume,
+          trend: 'stable' as 'up' | 'down' | 'stable', // Default to stable since change24h is not available
+          volume: 0, // Default volume since not available in MetaData
           tokenCount: meta.tokenCount
         };
         return acc;
@@ -308,13 +308,13 @@ export default function FeedPage() {
       {/* Market Sentiment */}
       {marketSentiment && (
         <section>
-          <MarketSentiment data={marketSentiment} />
+          <MarketSentiment />
         </section>
       )}
 
       {/* Buy Signals */}
       <section>
-        <BuySignals signals={buySignals} maxSignals={5} />
+        <BuySignals />
       </section>
 
       {/* Meta Categories */}
@@ -332,10 +332,9 @@ export default function FeedPage() {
                   </div>
                   <div className="text-sm text-console-dim space-y-1">
                     <div>Tokens: {meta.tokenCount}</div>
-                    <div>Market Cap: ${formatNumber(meta.marketCap)}</div>
-                    <div>Volume: ${formatNumber(meta.volume)}</div>
-                    <div className={`flex items-center gap-1 ${meta.trend === 'up' ? 'text-console-green' : meta.trend === 'down' ? 'text-console-red' : 'text-console-dim'}`}>
-                      {meta.trend === 'up' ? '↗' : meta.trend === 'down' ? '↘' : '→'} {meta.change24h.toFixed(1)}%
+                    <div>Avg Score: {meta.averageScore}</div>
+                    <div className="text-console-dim">
+                      → Stable
                     </div>
                   </div>
                   <div className="mt-3">

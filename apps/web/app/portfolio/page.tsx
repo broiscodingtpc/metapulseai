@@ -387,7 +387,17 @@ export default function PortfolioPage() {
       <AsciiFrame title="Holdings">
         {portfolio.length > 0 ? (
           <AsciiTable
-            headers={['Token', 'Amount', 'Avg Buy', 'Current', 'Value', 'P&L', 'P&L %', 'Allocation', 'Action']}
+            columns={[
+              { key: 'token', header: 'Token' },
+              { key: 'amount', header: 'Amount' },
+              { key: 'avgBuy', header: 'Avg Buy' },
+              { key: 'current', header: 'Current' },
+              { key: 'value', header: 'Value' },
+              { key: 'pnl', header: 'P&L' },
+              { key: 'pnlPercent', header: 'P&L %' },
+              { key: 'allocation', header: 'Allocation' },
+              { key: 'action', header: 'Action' }
+            ]}
             data={portfolioTableData}
           />
         ) : (
