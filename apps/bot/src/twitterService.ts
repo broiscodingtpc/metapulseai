@@ -1,6 +1,6 @@
 import { TwitterApi } from 'twitter-api-v2';
 import dotenv from 'dotenv';
-import { rateLimiter } from '../../../packages/core/src/rateLimiter';
+import { rateLimiter } from '@metapulse/core';
 
 // Load environment variables
 dotenv.config({ path: '.env.local' });
@@ -83,7 +83,7 @@ class TwitterService {
 
       const twitterTweets: TwitterTweet[] = [];
 
-      for (const tweet of tweets.data || []) {
+      for (const tweet of (tweets.data as unknown as any[]) || []) {
         const author = tweets.includes?.users?.find(user => user.id === tweet.author_id);
         
         twitterTweets.push({
@@ -193,7 +193,7 @@ class TwitterService {
             expansions: ['author_id']
           });
 
-          for (const tweet of tweets.data || []) {
+          for (const tweet of (tweets.data as unknown as any[]) || []) {
             const author = tweets.includes?.users?.find(user => user.id === tweet.author_id);
             const followers = author?.public_metrics?.followers_count || 0;
             

@@ -1,6 +1,7 @@
 import TelegramBot from 'node-telegram-bot-api';
-import { HourlyScheduler, HourlySignal } from '../schedulers/hourly.js';
-import { database, RedisClient } from '@metapulse/core';
+import { HourlyScheduler, HourlySignal } from '../schedulers/hourly';
+import { getDatabaseClient } from '@metapulse/core';
+import { RedisClient } from '@metapulse/core/src/redis';
 import { DexScreenerClient } from '@metapulse/dexscreener';
 import { EventEmitter } from 'events';
 
@@ -810,7 +811,8 @@ ${context === 'scan' ? '💡 Use /meta for detailed information' : ''}
   // Database operations
   private async trackUser(userId: number, username?: string) {
     try {
-      const supabase = database();
+      const dbClient = getDatabaseClient();
+      const supabase = dbClient.getSupabaseClient();
       
       await supabase
         .from('users')
@@ -829,7 +831,8 @@ ${context === 'scan' ? '💡 Use /meta for detailed information' : ''}
   }
 
   private async createUserSubscription(userId: number, username?: string) {
-    const supabase = database();
+    const dbClient = getDatabaseClient();
+    const supabase = dbClient.getSupabaseClient();
     
     await supabase
       .from('user_alerts')
@@ -847,7 +850,8 @@ ${context === 'scan' ? '💡 Use /meta for detailed information' : ''}
   }
 
   private async removeUserSubscription(userId: number): Promise<boolean> {
-    const supabase = database();
+    const dbClient = getDatabaseClient();
+    const supabase = dbClient.getSupabaseClient();
     
     const { error } = await supabase
       .from('user_alerts')
@@ -864,7 +868,8 @@ ${context === 'scan' ? '💡 Use /meta for detailed information' : ''}
   }
 
   private async getUserSubscription(userId: number): Promise<UserSubscription | null> {
-    const supabase = database();
+    const dbClient = getDatabaseClient();
+    const supabase = dbClient.getSupabaseClient();
     
     const { data, error } = await supabase
       .from('user_alerts')
@@ -886,7 +891,8 @@ ${context === 'scan' ? '💡 Use /meta for detailed information' : ''}
   }
 
   private async linkUserWallet(userId: number, walletAddress: string) {
-    const supabase = database();
+    const dbClient = getDatabaseClient();
+    const supabase = dbClient.getSupabaseClient();
     
     await supabase
       .from('users')
@@ -900,7 +906,8 @@ ${context === 'scan' ? '💡 Use /meta for detailed information' : ''}
   }
 
   private async getUserWallet(userId: number): Promise<string | null> {
-    const supabase = database();
+    const dbClient = getDatabaseClient();
+    const supabase = dbClient.getSupabaseClient();
     
     const { data, error } = await supabase
       .from('users')
@@ -912,7 +919,8 @@ ${context === 'scan' ? '💡 Use /meta for detailed information' : ''}
   }
 
   private async getActiveSubscribers(): Promise<UserSubscription[]> {
-    const supabase = database();
+    const dbClient = getDatabaseClient();
+    const supabase = dbClient.getSupabaseClient();
     
     const { data, error } = await supabase
       .from('user_alerts')
@@ -933,7 +941,8 @@ ${context === 'scan' ? '💡 Use /meta for detailed information' : ''}
 
   private async updateUserStats() {
     try {
-      const supabase = database();
+      const dbClient = getDatabaseClient();
+      const supabase = dbClient.getSupabaseClient();
       
       const [usersResult, subscriptionsResult] = await Promise.all([
         supabase.from('users').select('telegram_id', { count: 'exact' }),

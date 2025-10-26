@@ -411,7 +411,7 @@ Experienced developers and traders building the future of crypto intelligence.
         
       case 'refresh_pnl':
         await bot.sendMessage(chatId, "📊 Generating PnL report...", mainMenu);
-        await sendPnLReport(bot, chatId);
+        await sendPnLReport(bot, chatId, adaptiveAnalyzer);
         break;
         
       case 'refresh_top_tokens':
@@ -661,14 +661,14 @@ export async function sendBuySignals(bot: TelegramBot, chatId: string | number) 
         return;
       }
       
-      var data = { pairs: flatPairs };
+      var pairData = { pairs: flatPairs };
     }
 
     // Step 4: Filter tokens using adaptive criteria and exclude major tokens
     const now = Date.now();
     const majorTokens = ['SOL', 'USDC', 'USDT', 'BTC', 'ETH', 'WBTC', 'WETH', 'BONK', 'JUP', 'WIF', 'PYTH', 'JTO', 'RNDR', 'RAY', 'ORCA'];
     
-    const filteredTokens: BuySignalToken[] = data.pairs
+    const filteredTokens: BuySignalToken[] = pairData.pairs
       .filter((pair: any) => {
         // Exclude major tokens and stablecoins (check both name and symbol)
         const symbol = pair.baseToken?.symbol?.toUpperCase() || '';
@@ -707,7 +707,7 @@ export async function sendBuySignals(bot: TelegramBot, chatId: string | number) 
         const passesVolumeChange = volumeChange >= Math.min(adaptiveCriteria.minVolumeChange, -90); // Allow up to -90% change
         
         // Debug logging for first few tokens
-        if (data.pairs.indexOf(pair) < 3) {
+        if (pairData.pairs.indexOf(pair) < 3) {
           console.log(`🔍 Token ${symbol}: L:${liquidity} MC:${marketCap} Age:${pairAgeHours.toFixed(1)}h Txns:${transactions24h} Vol:${volume24h} Change:${volumeChange}%`);
           console.log(`   Passes: Liq:${passesLiquidity} MC:${passesMarketCap} Age:${passesAge} Activity:${passesActivity} Change:${passesVolumeChange}`);
         }

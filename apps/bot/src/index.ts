@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import { IngestWorker } from './workers/ingest.js';
 import { HourlyScheduler } from './schedulers/hourly.js';
 import { MetaPulseTelegramBot } from './telegram/bot.js';
-import { RedisClient } from '@metapulse/core';
+import { RedisClient } from '@metapulse/core/src/redis';
 import { DexScreenerClient } from '@metapulse/dexscreener';
 
 // Load environment variables
@@ -11,6 +11,7 @@ dotenv.config();
 interface BotConfig {
   // Redis
   redisUrl: string;
+  redisToken: string;
   
   // Supabase
   supabaseUrl: string;
@@ -48,16 +49,16 @@ class MetaPulseBot {
 
   constructor() {
     this.config = this.loadConfig();
-    this.redis = new RedisClient({ url: this.config.redisUrl });
+    this.redis = new RedisClient(this.config.redisUrl, this.config.redisToken);
     this.dexScreener = new DexScreenerClient({
-      baseUrl: this.config.dexScreenerApiUrl,
-      redis: this.redis
-    });
+      baseUrl: this.config.dexScreenerApiUrl
+    }, this.redis);
   }
 
   private loadConfig(): BotConfig {
     const requiredEnvVars = [
       'REDIS_URL',
+      'REDIS_TOKEN',
       'SUPABASE_URL', 
       'SUPABASE_ANON_KEY',
       'GROQ_API_KEY',
@@ -75,6 +76,7 @@ class MetaPulseBot {
 
     return {
       redisUrl: process.env.REDIS_URL!,
+      redisToken: process.env.REDIS_TOKEN!,
       supabaseUrl: process.env.SUPABASE_URL!,
       supabaseKey: process.env.SUPABASE_ANON_KEY!,
       groqApiKey: process.env.GROQ_API_KEY!,
@@ -115,15 +117,10 @@ class MetaPulseBot {
     // Initialize Ingest Worker
     if (this.config.enableIngestWorker) {
       this.ingestWorker = new IngestWorker({
-        pumpPortalWsUrl: this.config.pumpPortalWsUrl,
-        groqApiKey: this.config.groqApiKey,
-        geminiApiKey: this.config.geminiApiKey,
         enableLogging: this.config.enableLogging,
         batchSize: 10,
-        batchTimeoutMs: 30000,
-        maxRetries: 3,
-        retryDelayMs: 5000
-      }, this.dexScreener, this.redis);
+        maxRetries: 3
+      }, this.redis, this.config.groqApiKey, this.config.geminiApiKey);
 
       this.log('✅ Ingest Worker initialized');
     }
@@ -133,9 +130,8 @@ class MetaPulseBot {
       this.hourlyScheduler = new HourlyScheduler({
         cronExpression: '0 * * * *', // Every hour
         enableLogging: this.config.enableLogging,
-        maxTokensToProcess: 1000,
-        minScoreThreshold: 50,
-        maxSignalsToGenerate: 20
+        maxTokens: 20,
+        minScore: 50
       }, this.redis);
 
       this.log('✅ Hourly Scheduler initialized');
@@ -290,8 +286,8 @@ class MetaPulseBot {
         this.log('✅ Ingest Worker stopped');
       }
 
-      // Close Redis connection
-      await this.redis.disconnect();
+      // Cleanup Redis connection
+      // Note: Upstash Redis doesn't require explicit disconnect
       this.log('✅ Redis disconnected');
 
       this.log('🏁 MetaPulse Bot stopped successfully');

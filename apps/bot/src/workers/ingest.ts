@@ -1,7 +1,14 @@
-import { PumpPortalWS, RawEvent } from '@metapulse/pumpportal';
-import { DexScreenerClient } from '@metapulse/dexscreener';
-import { ModelRouter, ScoreAssembler, TokenSnapshot, database, RedisClient } from '@metapulse/core';
 import { EventEmitter } from 'events';
+import { RawEvent as CoreRawEvent, MarketSnapshot, TokenScore, getDatabaseClient } from '@metapulse/core';
+import { RawEvent as PumpPortalRawEvent } from '@metapulse/pumpportal';
+import { DexScreenerClient } from '@metapulse/dexscreener';
+import { TokenSnapshot } from '@metapulse/core/src/scoring/assembleScore';
+import { ModelRouter, ModelRouterConfig } from '@metapulse/core/src/ai/modelRouter';
+import { GroqConfig } from '@metapulse/core/src/ai/providers/groq';
+import { GeminiConfig } from '@metapulse/core/src/ai/providers/gemini';
+import { ScoreAssembler } from '@metapulse/core/src/scoring/assembleScore';
+import { PumpPortalWS } from '@metapulse/pumpportal';
+import { RedisClient } from '@metapulse/core/src/redis';
 
 export interface IngestWorkerConfig {
   pumpPortalApiKey?: string;
@@ -31,7 +38,7 @@ export class IngestWorker extends EventEmitter {
   private config: Required<IngestWorkerConfig>;
   private stats: ProcessingStats;
   private isRunning = false;
-  private processingQueue: RawEvent[] = [];
+  private processingQueue: PumpPortalRawEvent[] = [];
   private processingTimer?: NodeJS.Timeout;
 
   constructor(
@@ -63,9 +70,23 @@ export class IngestWorker extends EventEmitter {
       enableLogging: this.config.enableLogging,
       enableCaching: true,
       cacheExpiry: 300 // 5 minutes
-    }, redis);
+    });
 
-    this.modelRouter = new ModelRouter(groqApiKey, geminiApiKey, redis);
+    this.modelRouter = new ModelRouter({
+      groq: { 
+        apiKey: groqApiKey,
+        model: 'llama-3.1-8b-instant',
+        redisClient: redis,
+        rateLimit: 30
+      },
+      gemini: { 
+        apiKey: geminiApiKey,
+        model: 'gemini-2.5-flash',
+        redisClient: redis,
+        rateLimit: 60
+      },
+      consensusMaxDelta: 0.3
+    });
     this.scoreAssembler = new ScoreAssembler();
 
     // Initialize stats
@@ -121,7 +142,7 @@ export class IngestWorker extends EventEmitter {
     this.pumpPortal.on('rawEvent', this.handleRawEvent.bind(this));
   }
 
-  private async handleRawEvent(event: RawEvent) {
+  private async handleRawEvent(event: PumpPortalRawEvent) {
     try {
       this.stats.eventsReceived++;
       this.stats.lastEventAt = new Date();
@@ -149,29 +170,20 @@ export class IngestWorker extends EventEmitter {
     }
   }
 
-  private async storeRawEvent(event: RawEvent) {
+  private async storeRawEvent(event: PumpPortalRawEvent) {
     try {
-      const supabase = database();
+      const db = getDatabaseClient();
       
-      await supabase
-        .from('raw_events')
-        .insert({
-          mint: event.mint,
-          signature: event.signature,
-          trader_pubkey: event.trader_pubkey,
-          tx_type: event.tx_type,
-          initial_buy: event.initial_buy,
-          sol_amount: event.sol_amount,
-          v_tokens_in_curve: event.v_tokens_in_curve,
-          v_sol_in_curve: event.v_sol_in_curve,
-          market_cap_sol: event.market_cap_sol,
-          name: event.name,
-          symbol: event.symbol,
-          uri: event.uri,
-          pool: event.pool,
-          payload: event.payload,
-          received_at: event.received_at.toISOString()
-        });
+      // Convert PumpPortalRawEvent to CoreRawEvent format
+      const coreEvent: CoreRawEvent = {
+        mint: event.mint,
+        event_type: event.tx_type === 'create' ? 'tokenCreate' : 
+                   event.tx_type === 'trade' ? 'tokenTrade' : 'migration',
+        data: event.payload,
+        received_at: event.received_at.toISOString()
+      };
+      
+      await db.insertRawEvent(coreEvent);
 
       this.log(`💾 Stored raw event for ${event.mint}`);
     } catch (error) {
@@ -198,7 +210,7 @@ export class IngestWorker extends EventEmitter {
     this.log(`🔄 Processing batch of ${batch.length} events`);
 
     // Group events by mint to avoid duplicate processing
-    const eventsByMint = new Map<string, RawEvent[]>();
+    const eventsByMint = new Map<string, PumpPortalRawEvent[]>();
     
     for (const event of batch) {
       if (!eventsByMint.has(event.mint)) {
@@ -220,7 +232,7 @@ export class IngestWorker extends EventEmitter {
     }
   }
 
-  private async processTokenEvents(mint: string, events: RawEvent[]) {
+  private async processTokenEvents(mint: string, events: PumpPortalRawEvent[]) {
     this.log(`🔍 Processing ${events.length} events for token ${mint}`);
 
     // Get DexScreener data
@@ -238,7 +250,7 @@ export class IngestWorker extends EventEmitter {
     await this.storeMarketSnapshot(snapshot);
 
     // Get AI scores
-    const aiResult = await this.modelRouter.getConsensusScore(snapshot);
+    const aiResult = await this.modelRouter.getDualScores(snapshot);
     
     // Assemble final score
     const scoreResult = this.scoreAssembler.assembleScore(snapshot, aiResult);
@@ -260,7 +272,7 @@ export class IngestWorker extends EventEmitter {
     });
   }
 
-  private buildTokenSnapshot(mint: string, events: RawEvent[], pairs: any[]): TokenSnapshot {
+  private buildTokenSnapshot(mint: string, events: PumpPortalRawEvent[], pairs: any[]): TokenSnapshot {
     const latestEvent = events[events.length - 1];
     const topPair = pairs[0]; // Assume first pair is most liquid
 
@@ -273,59 +285,56 @@ export class IngestWorker extends EventEmitter {
       name: latestEvent.name || topPair?.baseToken?.name || 'Unknown',
       symbol: latestEvent.symbol || topPair?.baseToken?.symbol || 'UNK',
       
-      // Market data from DexScreener
-      price_usd: parseFloat(topPair?.priceUsd || '0'),
-      market_cap: topPair?.marketCap || latestEvent.market_cap_sol || 0,
-      volume_24h: topPair?.volume?.h24 || 0,
-      liquidity_usd: topPair?.liquidity?.usd || 0,
-      price_change_24h: topPair?.priceChange?.h24 || 0,
+      // Market data from DexScreener - using correct property names
+      price: parseFloat(topPair?.priceUsd || '0'),
+      marketCap: topPair?.marketCap || latestEvent.market_cap_sol || 0,
+      volume24h: topPair?.volume?.h24 || 0,
+      liquidity: topPair?.liquidity?.usd || 0,
       
-      // Transaction metrics
-      tx_count_24h: topPair?.txns?.h24 ? 
-        (topPair.txns.h24.buys + topPair.txns.h24.sells) : 0,
-      buy_sell_ratio: topPair?.txns?.h24 ? 
+      // Transaction metrics - using correct property names
+      txCount1h: topPair?.txns?.h1 ? 
+        (topPair.txns.h1.buys + topPair.txns.h1.sells) : 0,
+      buyerSellerRatio: topPair?.txns?.h24 ? 
         (topPair.txns.h24.buys / Math.max(topPair.txns.h24.sells, 1)) : 1,
       
-      // On-chain metrics from events
-      unique_traders_24h: uniqueTraders,
-      total_volume_sol: totalVolume,
+      // On-chain metrics from events - using correct property names
+      uniqueBuyers: uniqueTraders,
       
       // Social metrics (placeholder - would integrate with X client)
-      social_mentions: 0,
-      social_sentiment: 0.5,
+      xMentions1h: 0,
+      xEngagementRate: 0.5,
       
       // Metadata
-      created_at: new Date(),
-      pair_address: topPair?.pairAddress,
-      dex_id: topPair?.dexId
+      ageHours: topPair?.pairCreatedAt ? 
+        (Date.now() - topPair.pairCreatedAt * 1000) / (1000 * 60 * 60) : 0,
+      dexsUrl: topPair?.url
     };
   }
 
   private async storeMarketSnapshot(snapshot: TokenSnapshot) {
     try {
-      const supabase = database();
+      const db = getDatabaseClient();
       
-      await supabase
-        .from('market_snapshots')
-        .insert({
-          mint: snapshot.mint,
+      const marketSnapshot: MarketSnapshot = {
+        mint: snapshot.mint,
+        price: snapshot.price || 0,
+        volume_24h: snapshot.volume24h,
+        liquidity: snapshot.liquidity,
+        market_cap_sol: snapshot.marketCap,
+        dex_url: snapshot.dexsUrl,
+        snapshot_data: {
           name: snapshot.name,
           symbol: snapshot.symbol,
-          price_usd: snapshot.price_usd,
-          market_cap: snapshot.market_cap,
-          volume_24h: snapshot.volume_24h,
-          liquidity_usd: snapshot.liquidity_usd,
-          price_change_24h: snapshot.price_change_24h,
-          tx_count_24h: snapshot.tx_count_24h,
-          buy_sell_ratio: snapshot.buy_sell_ratio,
-          unique_traders_24h: snapshot.unique_traders_24h,
-          total_volume_sol: snapshot.total_volume_sol,
-          social_mentions: snapshot.social_mentions,
-          social_sentiment: snapshot.social_sentiment,
-          pair_address: snapshot.pair_address,
-          dex_id: snapshot.dex_id,
-          created_at: snapshot.created_at.toISOString()
-        });
+          txCount1h: snapshot.txCount1h,
+          buyerSellerRatio: snapshot.buyerSellerRatio,
+          uniqueBuyers: snapshot.uniqueBuyers,
+          xMentions1h: snapshot.xMentions1h,
+          xEngagementRate: snapshot.xEngagementRate,
+          ageHours: snapshot.ageHours
+        }
+      };
+
+      await db.upsertMarketSnapshot(marketSnapshot);
 
       this.log(`💾 Stored market snapshot for ${snapshot.mint}`);
     } catch (error) {
@@ -336,24 +345,29 @@ export class IngestWorker extends EventEmitter {
 
   private async storeScores(mint: string, aiResult: any, scoreResult: any) {
     try {
-      const supabase = database();
+      const db = getDatabaseClient();
       
-      // Store AI scores
-      await supabase
-        .from('scores')
-        .insert({
-          mint,
-          groq_score: aiResult.groqResult,
-          gemini_score: aiResult.geminiResult,
-          consensus_score: aiResult.consensus,
-          confidence: aiResult.confidence,
-          market_score: scoreResult.breakdown.marketScore,
-          social_score: scoreResult.breakdown.socialScore,
-          onchain_score: scoreResult.breakdown.onChainScore,
-          ai_bonus: scoreResult.breakdown.aiBonus,
-          final_score: scoreResult.finalScore,
-          created_at: new Date().toISOString()
-        });
+      // Create TokenScore object
+      const tokenScore: TokenScore = {
+        mint,
+        ai_score: aiResult.consensus?.prob_enterable ? Math.round(aiResult.consensus.prob_enterable * 100) : undefined,
+        final_score: scoreResult.finalScore,
+        confidence: aiResult.confidence,
+        prob_enterable: aiResult.consensus?.prob_enterable,
+        expected_roi_p50: aiResult.consensus?.expected_roi_p50,
+        expected_roi_p90: aiResult.consensus?.expected_roi_p90,
+        risk: aiResult.consensus?.risk,
+        reasoning: aiResult.consensus?.reasoning,
+        model_response: {
+          groq: aiResult.groq,
+          gemini: aiResult.gemini,
+          consensus: aiResult.consensus,
+          delta: aiResult.delta
+        },
+        heuristic_score: scoreResult.breakdown?.marketScore + scoreResult.breakdown?.socialScore + scoreResult.breakdown?.onChainScore
+      };
+
+      await db.upsertTokenScore(tokenScore);
 
       this.log(`💾 Stored scores for ${mint}`);
     } catch (error) {
@@ -443,7 +457,7 @@ export class IngestWorker extends EventEmitter {
     
     try {
       // Create a synthetic event for processing
-      const syntheticEvent: RawEvent = {
+      const syntheticEvent: PumpPortalRawEvent = {
         mint,
         tx_type: 'manual',
         payload: {},

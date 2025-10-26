@@ -96,6 +96,11 @@ export class DatabaseClient {
     this.supabase = createClient(url, key);
   }
 
+  // Expose the underlying Supabase client for direct access when needed
+  getSupabaseClient(): SupabaseClient {
+    return this.supabase;
+  }
+
   // Raw Events
   async insertRawEvent(event: RawEvent) {
     const { data, error } = await this.supabase
@@ -207,7 +212,7 @@ export class DatabaseClient {
     return data;
   }
 
-  async getTokensByCategory() {
+  async getTokensByCategory(): Promise<any[]> {
     const { data, error } = await this.supabase
       .from('scores')
       .select('meta_category, count(*), avg(final_score)')
@@ -215,7 +220,7 @@ export class DatabaseClient {
       .order('avg', { ascending: false });
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   // Hourly Signals

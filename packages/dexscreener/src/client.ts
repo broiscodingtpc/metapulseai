@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import axiosRetry from 'axios-retry';
-import { RedisClient } from '@metapulse/core';
+import { RedisClient } from '@metapulse/core/src/redis';
 
 export interface DexPair {
   chainId: string;

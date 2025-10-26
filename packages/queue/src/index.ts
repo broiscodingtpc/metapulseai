@@ -101,7 +101,6 @@ export class QueueManager {
       port: config.redis.port,
       password: config.redis.password,
       db: config.redis.db || 0,
-      retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
       lazyConnect: true
     });
@@ -121,6 +120,9 @@ export class QueueManager {
     ];
 
     for (const name of queueNames) {
+      const queueConfig = this.config.queues[name as keyof typeof this.config.queues] || {};
+      const { connection, ...restConfig } = queueConfig;
+      
       const queue = new Queue(name, {
         connection: this.redis,
         defaultJobOptions: {
@@ -132,7 +134,7 @@ export class QueueManager {
             delay: 2000,
           },
         },
-        ...this.config.queues[name as keyof typeof this.config.queues]
+        ...restConfig
       });
 
       this.queues.set(name, queue);
@@ -321,14 +323,19 @@ export class QueueManager {
       };
 
       // Save to database
-      await this.database.insertTokenScore({
+      await this.database.upsertTokenScore({
         mint,
-        score: analysisResult.score,
-        risk_level: analysisResult.risk as any,
-        signals: [analysisResult.signals],
-        metadata: analysisResult.metadata,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        heuristic_score: analysisResult.score,
+        ai_score: analysisResult.score,
+        final_score: analysisResult.score,
+        confidence: 0.8,
+        prob_enterable: 0.7,
+        expected_roi_p50: 1.5,
+        expected_roi_p90: 3.0,
+        risk: analysisResult.risk as any,
+        reasoning: `Automated analysis: ${analysisResult.signals}`,
+        meta_category: undefined,
+        meta_score: undefined
       });
 
       const duration = Date.now() - startTime;
@@ -384,10 +391,12 @@ export class QueueManager {
 
       // Save signal
       await this.database.insertHourlySignal({
-        signal_type: type,
-        tokens: topTokens.map(t => t.mint),
-        metadata: signal.metadata,
-        created_at: new Date().toISOString()
+        signal_time: new Date().toISOString(),
+        top_tokens: topTokens,
+        top_metas: [],
+        market_summary: signal.metadata,
+        published_telegram: false,
+        published_web: false
       });
 
       // Trigger notifications for high-priority signals
@@ -614,6 +623,7 @@ export class QueueManager {
     try {
       await this.database.insertLog({
         level: status === 'failed' ? 'error' : 'info',
+        type: 'scoring',
         message: `Job ${job.id} ${status}`,
         metadata: {
           jobId: job.id,
@@ -693,4 +703,3 @@ export class QueueManager {
 
 // Export types and classes
 export * from 'bullmq';
-export { QueueManager };

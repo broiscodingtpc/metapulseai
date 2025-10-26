@@ -1,6 +1,6 @@
 import { TwitterApi } from 'twitter-api-v2';
 import { aiLearningService } from './aiLearningService';
-import { adaptiveAnalyzer } from './adaptiveAnalyzer';
+import { AdaptiveAnalyzer } from './adaptiveAnalyzer';
 import { topTokensService } from './topTokensService';
 
 interface PostTemplate {
@@ -78,7 +78,7 @@ class TwitterPostingService {
       const topTokens = await topTokensService.getTopTokens();
       
       // Calculate success rate
-      const totalCalls = learningMetrics.totalCalls || 0;
+      const totalCalls = learningMetrics.totalCallsTracked || 0;
       const successfulCalls = Math.floor(totalCalls * 0.75); // Estimate based on performance
       const successRate = totalCalls > 0 ? Math.round((successfulCalls / totalCalls) * 100) : 0;
       
@@ -91,7 +91,7 @@ class TwitterPostingService {
       // Get best call (mock data - should be from actual tracking)
       const bestCall = topTokens.length > 0 ? {
         token: topTokens[0].symbol,
-        gain: topTokens[0].marketScore * 2, // Estimate
+        gain: topTokens[0].overallScore * 2, // Estimate
         timeframe: '24h'
       } : null;
 

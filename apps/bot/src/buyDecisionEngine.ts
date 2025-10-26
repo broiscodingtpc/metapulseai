@@ -1,11 +1,13 @@
 import { groqService } from './groqService.js';
 
 interface TokenScore {
+  mint: string;
   tech: number;
   meta: number;
   total: number;
   label: string;
   metaScore?: number;
+  meta_score?: number;
   reason?: string;
   riskLevel?: string;
   riskScore?: number;
@@ -70,11 +72,10 @@ export class BuyDecisionEngine {
     // Enhanced AI Analysis using Groq
     try {
       const aiAnalysis = await groqService.analyzeToken({
-        symbol: tokenScore.symbol || 'Unknown',
-        name: tokenScore.name || 'Unknown Token',
-        score: tokenScore.total || 0,
-        metaScore: tokenScore.metaScore || 0,
-        label: tokenScore.label || 'Unknown',
+        mint: tokenScore.mint || 'Unknown',
+        name: tokenScore.mint || 'Unknown Token',
+        symbol: tokenScore.mint || 'Unknown',
+        metaScore: tokenScore.meta_score || 0,
         price: dexData?.priceUsd || 0,
         volume24h: dexData?.volume?.h24 || 0,
         liquidity: dexData?.liquidity?.usd || 0,
@@ -85,10 +86,10 @@ export class BuyDecisionEngine {
       console.log('🤖 Groq AI Analysis:', aiAnalysis);
       
       // Use AI insights to adjust confidence
-      if (aiAnalysis.recommendation === 'BUY') {
+      if (aiAnalysis.score >= 70) {
         confidence += 20;
         reasons.push(`🤖 AI recommends BUY: ${aiAnalysis.reasoning}`);
-      } else if (aiAnalysis.recommendation === 'HOLD') {
+      } else if (aiAnalysis.score >= 50) {
         confidence += 10;
         reasons.push(`🤖 AI suggests HOLD: ${aiAnalysis.reasoning}`);
       } else {

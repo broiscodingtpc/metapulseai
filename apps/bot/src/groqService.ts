@@ -1,5 +1,5 @@
 import Groq from 'groq-sdk';
-import { rateLimiter } from '../../../packages/core/src/rateLimiter';
+import { rateLimiter } from '@metapulse/core';
 
 export interface AIAnalysis {
   score: number;
@@ -26,6 +26,10 @@ export interface TokenData {
   website?: string;
   twitter?: string;
   telegram?: string;
+  metaScore?: number;
+  price?: number;
+  liquidity?: number;
+  pairAge?: number;
 }
 
 class GroqService {

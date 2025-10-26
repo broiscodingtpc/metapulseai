@@ -38,8 +38,8 @@ class TopTokensService {
 
       // Add market-based tokens
       marketTokens.forEach(token => {
-        allTokens.set(token.symbol, {
-          ...token,
+        allTokens.set(token.symbol!, {
+          ...token as TopToken,
           socialScore: 0,
           twitterMentions: 0,
           sentiment: 'neutral' as const,
@@ -59,7 +59,18 @@ class TopTokensService {
         } else {
           // Add new token discovered through social media
           allTokens.set(token.symbol, {
-            ...token,
+            address: token.address || 'unknown',
+            name: token.name || 'Unknown',
+            symbol: token.symbol,
+            price: token.price || 0,
+            marketCap: token.marketCap || 0,
+            volume24h: token.volume24h || 0,
+            priceChange24h: token.priceChange24h || 0,
+            liquidity: token.liquidity || 0,
+            socialScore: token.socialScore,
+            twitterMentions: token.twitterMentions,
+            sentiment: token.sentiment,
+            influencerCalls: 0,
             overallScore: token.socialScore * 0.5 // Lower weight for social-only tokens
           });
         }

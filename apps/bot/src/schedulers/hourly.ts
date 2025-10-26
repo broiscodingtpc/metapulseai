@@ -1,5 +1,6 @@
 import cron from 'node-cron';
-import { database, RedisClient } from '@metapulse/core';
+import { getDatabaseClient } from '@metapulse/core';
+import { RedisClient } from '@metapulse/core/src/redis';
 import { EventEmitter } from 'events';
 
 export interface HourlySchedulerConfig {
@@ -149,7 +150,6 @@ export class HourlyScheduler extends EventEmitter {
 
     if (this.cronJob) {
       this.cronJob.stop();
-      this.cronJob.destroy();
       this.cronJob = undefined;
     }
 
@@ -214,7 +214,7 @@ export class HourlyScheduler extends EventEmitter {
   }
 
   private async getTokenCandidates(): Promise<TokenCandidate[]> {
-    const supabase = database();
+    const supabase = getDatabaseClient().getSupabaseClient();
     
     // Get tokens with scores from the last 2 hours (to ensure we have recent data)
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
@@ -252,21 +252,24 @@ export class HourlyScheduler extends EventEmitter {
     }
 
     // Transform data into TokenCandidate format
-    return data.map(item => ({
-      mint: item.mint,
-      name: item.market_snapshots.name,
-      symbol: item.market_snapshots.symbol,
-      final_score: item.final_score,
-      confidence: item.confidence,
-      market_cap: item.market_snapshots.market_cap,
-      volume_24h: item.market_snapshots.volume_24h,
-      liquidity_usd: item.market_snapshots.liquidity_usd,
-      price_change_24h: item.market_snapshots.price_change_24h,
-      tx_count_24h: item.market_snapshots.tx_count_24h,
-      unique_traders_24h: item.market_snapshots.unique_traders_24h,
-      created_at: item.created_at,
-      reasoning: item.consensus_score?.reasoning || 'AI analysis completed'
-    }));
+    return data.map(item => {
+      const snapshot = Array.isArray(item.market_snapshots) ? item.market_snapshots[0] : item.market_snapshots;
+      return {
+        mint: item.mint,
+        name: snapshot?.name || 'Unknown',
+        symbol: snapshot?.symbol || 'UNK',
+        final_score: item.final_score,
+        confidence: item.confidence,
+        market_cap: snapshot?.market_cap || 0,
+        volume_24h: snapshot?.volume_24h || 0,
+        liquidity_usd: snapshot?.liquidity_usd || 0,
+        price_change_24h: snapshot?.price_change_24h || 0,
+        tx_count_24h: snapshot?.tx_count_24h || 0,
+        unique_traders_24h: snapshot?.unique_traders_24h || 0,
+        created_at: item.created_at,
+        reasoning: item.consensus_score?.reasoning || 'AI analysis completed'
+      };
+    });
   }
 
   private filterCandidates(candidates: TokenCandidate[]): TokenCandidate[] {
@@ -395,7 +398,7 @@ export class HourlyScheduler extends EventEmitter {
   private async storeHourlySignals(signals: HourlySignal[]): Promise<void> {
     if (signals.length === 0) return;
 
-    const supabase = database();
+    const supabase = getDatabaseClient().getSupabaseClient();
 
     const { error } = await supabase
       .from('hourly_signals')
@@ -464,7 +467,7 @@ export class HourlyScheduler extends EventEmitter {
     }
 
     // Fallback to database
-    const supabase = database();
+    const supabase = getDatabaseClient().getSupabaseClient();
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabase
@@ -482,7 +485,7 @@ export class HourlyScheduler extends EventEmitter {
   }
 
   async getSignalHistory(hours: number = 24): Promise<HourlySignal[]> {
-    const supabase = database();
+    const supabase = getDatabaseClient().getSupabaseClient();
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabase
