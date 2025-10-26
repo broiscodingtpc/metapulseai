@@ -10,7 +10,7 @@
   "scripts": {
     "dev:bot": "pnpm --filter @metapulse/bot dev",
     "dev:web": "pnpm --filter @metapulse/web dev",
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @metapulse/pumpportal build && pnpm --filter @metapulse/dexscreener build && pnpm --filter @metapulse/core build && pnpm --filter @metapulse/bot build && pnpm --filter @metapulse/web build",
     "start:bot": "pnpm --filter @metapulse/bot start",
     "start:web": "pnpm --filter @metapulse/web start",
     "start": "pnpm dev:bot & pnpm dev:web"
