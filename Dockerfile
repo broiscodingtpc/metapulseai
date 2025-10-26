@@ -14,6 +14,7 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/core/package.json ./packages/core/
 COPY packages/dexscreener/package.json ./packages/dexscreener/
 COPY packages/pumpportal/package.json ./packages/pumpportal/
+COPY packages/queue/package.json ./packages/queue/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
