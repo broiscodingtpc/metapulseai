@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getDexScreenerClient, DexPair } from '@metapulse/dexscreener';
+import { DexScreenerClient, DexPair } from '@metapulse/dexscreener';
 import { getDatabaseClient, TokenScore, MarketSnapshot } from './database';
 
 // Legacy types for backward compatibility
@@ -296,7 +296,7 @@ export class ScoringEngine {
         expectedRoiP90: heuristicMetrics.totalScore * 0.02,
         risk: heuristicMetrics.riskScore > 70 ? 'LOW' : heuristicMetrics.riskScore > 40 ? 'MEDIUM' : 'HIGH',
         reasoning: `AI analysis failed. Fallback to heuristic score: ${heuristicMetrics.totalScore}`,
-        modelResponse: { error: error.message }
+        modelResponse: { error: error instanceof Error ? error.message : String(error) }
       };
     }
   }
@@ -374,15 +374,15 @@ Respond ONLY with valid JSON in this exact format:
   async analyzeToken(mint: string): Promise<TokenAnalysis> {
     try {
       // Fetch data from multiple sources
-      const dexScreener = getDexScreenerClient();
+      const dexScreener = new DexScreenerClient();
       const db = getDatabaseClient();
 
       const [dexData, marketSnapshot] = await Promise.allSettled([
-        dexScreener.getTokenPairs(mint),
+        dexScreener.searchToken(mint),
         db.getMarketSnapshot(mint)
       ]);
 
-      const pairs = dexData.status === 'fulfilled' ? dexData.value : [];
+      const pairs = dexData.status === 'fulfilled' ? dexData.value.pairs : [];
       const snapshot = marketSnapshot.status === 'fulfilled' ? marketSnapshot.value : null;
 
       // Calculate heuristic metrics
@@ -439,7 +439,7 @@ Respond ONLY with valid JSON in this exact format:
         finalScore: 0,
         confidence: 0.1,
         risk: 'HIGH',
-        reasoning: `Analysis failed: ${error.message}`
+        reasoning: `Analysis failed: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }

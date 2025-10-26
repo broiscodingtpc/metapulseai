@@ -109,7 +109,7 @@ export class DexScreenerClient {
       retryCondition: (error) => {
         return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
                (error.response?.status === 429) || // Rate limit
-               (error.response?.status >= 500); // Server errors
+               ((error.response?.status ?? 0) >= 500); // Server errors
       }
     });
 

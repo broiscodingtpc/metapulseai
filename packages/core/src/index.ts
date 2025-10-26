@@ -3,7 +3,7 @@ export * from "./metaLabel.js";
 export * from "./riskAnalysis.js";
 export * from "./rateLimiter.js";
 export * from "./database.js";
-export * from "./redis.js";
+export { RedisClient, createRateLimiter } from "./redis.js";
 
 // AI modules
 export * from "./ai/schema.js";

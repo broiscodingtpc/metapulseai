@@ -176,7 +176,7 @@ export class ModelRouter {
       };
 
     } catch (error) {
-      throw new Error(`Model router error: ${error.message}`);
+      throw new Error(`Model router error: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

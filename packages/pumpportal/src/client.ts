@@ -183,7 +183,8 @@ export class PumpPortalWS extends EventEmitter {
       
       this.log(`Processed ${normalizedEvent.tx_type} event for ${normalizedEvent.mint}`);
     } catch (error) {
-      this.log(`Error normalizing event: ${error.message}`, 'error');
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.log(`Error normalizing event: ${errorMessage}`, 'error');
       this.emit('error', error);
     }
   }

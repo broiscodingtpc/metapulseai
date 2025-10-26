@@ -109,8 +109,8 @@ export class RedisClient {
 
     // Get current bucket state
     const bucketData = await this.redis.hmget(key, 'tokens', 'lastRefill');
-    let tokens = bucketData[0] ? parseFloat(bucketData[0] as string) : config.capacity;
-    let lastRefill = bucketData[1] ? parseInt(bucketData[1] as string) : now;
+    let tokens = bucketData?.[0] ? parseFloat(bucketData[0] as string) : config.capacity;
+    let lastRefill = bucketData?.[1] ? parseInt(bucketData[1] as string) : now;
 
     // Calculate tokens to add based on time elapsed
     const timeDiff = (now - lastRefill) / 1000; // seconds

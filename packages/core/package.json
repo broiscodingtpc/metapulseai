@@ -7,6 +7,8 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@metapulse/dexscreener": "workspace:*",
     "@supabase/supabase-js": "^2.39.0",
     "@upstash/redis": "^1.28.0",
     "zod": "^3.22.0"

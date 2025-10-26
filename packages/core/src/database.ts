@@ -212,7 +212,6 @@ export class DatabaseClient {
       .from('scores')
       .select('meta_category, count(*), avg(final_score)')
       .not('meta_category', 'is', null)
-      .group('meta_category')
       .order('avg', { ascending: false });
     
     if (error) throw error;

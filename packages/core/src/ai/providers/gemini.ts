@@ -160,7 +160,7 @@ Return ONLY the JSON object, no other text.`;
 
     } catch (error) {
       const latencyMs = Date.now() - startTime;
-      throw new Error(`Gemini provider error: ${error.message} (${latencyMs}ms)`);
+      throw new Error(`Gemini provider error: ${error instanceof Error ? error.message : String(error)} (${latencyMs}ms)`);
     }
   }
 }
